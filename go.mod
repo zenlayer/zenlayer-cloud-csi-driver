@@ -6,7 +6,7 @@ toolchain go1.24.3
 
 require (
 	github.com/container-storage-interface/spec v1.5.0
-	github.com/golang/protobuf v1.3.2
+	github.com/golang/protobuf v1.5.4
 	github.com/kubernetes-csi/csi-lib-utils v0.6.1
 	github.com/zenlayer/zenlayercloud-sdk-go v0.1.27
 	golang.org/x/net v0.42.0
@@ -28,6 +28,7 @@ require (
 	github.com/moby/sys/mountinfo v0.7.2 // indirect
 	golang.org/x/text v0.27.0 // indirect
 	google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
