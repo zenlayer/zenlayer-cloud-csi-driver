@@ -126,7 +126,7 @@ k8s.io/apimachinery/third_party/forked/golang/reflect
 # k8s.io/client-go v0.0.0-20190823012814-cdbd92c111cf
 ## explicit; go 1.12
 k8s.io/client-go/util/retry
-# k8s.io/klog v0.4.0
+# k8s.io/klog v1.0.0
 ## explicit; go 1.12
 k8s.io/klog
 # k8s.io/klog/v2 v2.130.1
