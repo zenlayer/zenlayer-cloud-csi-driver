@@ -2711,3 +2711,28 @@ func (c *Client) DescribeInstanceMonitorData(request *DescribeInstanceMonitorDat
 	err = c.ApiCall(request, response)
 	return
 }
+
+
+
+func NewDescribeAvailableBorderGatewayRequest() (request *DescribeAvailableBorderGatewayRequest) {
+	request = &DescribeAvailableBorderGatewayRequest{
+		BaseRequest: &common.BaseRequest{},
+	}
+	request.Init().InitWithApiInfo(SERVICE, APIVersion, "DescribeAvailableBorderGateway")
+
+	return
+}
+
+func NewDescribeAvailableBorderGatewayResponse() (response *DescribeAvailableBorderGatewayResponse) {
+	response = &DescribeAvailableBorderGatewayResponse{
+		BaseResponse: &common.BaseResponse{},
+	}
+	return
+}
+
+// DescribeAvailableBorderGateway 获取可绑定NAT的边界网关。
+func (c *Client) DescribeAvailableBorderGateway(request *DescribeAvailableBorderGatewayRequest) (response *DescribeAvailableBorderGatewayResponse, err error) {
+	response = NewDescribeAvailableBorderGatewayResponse()
+	err = c.ApiCall(request, response)
+	return
+}

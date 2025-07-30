@@ -109,6 +109,8 @@ type DescribeVpcsRequest struct {
 	PageSize int `json:"pageSize,omitempty"`
 
 	PageNum int `json:"pageNum,omitempty"`
+
+	ResourceGroupId string `json:"resourceGroupId,omitempty"`
 }
 
 type DescribeSubnetRegionsResponse struct {
@@ -301,6 +303,10 @@ type CreateRouteRequest struct {
 
 	IpVersion string `json:"ipVersion,omitempty"`
 
+	RouteType string `json:"routeType,omitempty"`
+
+	SourceCidrBlock string `json:"sourceCidrBlock,omitempty"`
+
 	CidrBlock string `json:"cidrBlock,omitempty"`
 
 	Priority int `json:"priority,omitempty"`
@@ -359,6 +365,8 @@ type RouteInfo struct {
 
 	Type string `json:"type,omitempty"`
 
+	SourceCidrBlock string `json:"sourceCidrBlock,omitempty"`
+
 	CidrBlock string `json:"cidrBlock,omitempty"`
 
 	Priority int `json:"priority,omitempty"`
@@ -410,6 +418,8 @@ type DescribeInstancesRequest struct {
 	PageSize int `json:"pageSize,omitempty"`
 
 	PageNum int `json:"pageNum,omitempty"`
+
+	ResourceGroupId string `json:"resourceGroupId,omitempty"`
 }
 
 type DescribeInstancesResponse struct {
@@ -467,6 +477,8 @@ type InstanceInfo struct {
 	ResourceGroupId string `json:"resourceGroupId,omitempty"`
 
 	ResourceGroupName string `json:"resourceGroupName,omitempty"`
+
+	Nics []*NicInfo `json:"nics,omitempty"`
 }
 
 type DescribeInstancesStatusResponse struct {
@@ -500,6 +512,8 @@ type DescribeInstancesStatusRequest struct {
 	PageSize int `json:"pageSize,omitempty"`
 
 	PageNum int `json:"pageNum,omitempty"`
+
+	ResourceGroupId string `json:"resourceGroupId,omitempty"`
 }
 
 type ModifyInstancesResourceGroupResponse struct {
@@ -716,6 +730,8 @@ type DescribeCidrsRequest struct {
 	PageSize int `json:"pageSize,omitempty"`
 
 	PageNum int `json:"pageNum,omitempty"`
+
+	ResourceGroupId string `json:"resourceGroupId,omitempty"`
 }
 
 type DescribePoolsResponse struct {
@@ -1039,6 +1055,8 @@ type DescribeDisksRequest struct {
 	PageSize int `json:"pageSize,omitempty"`
 
 	PageNum int `json:"pageNum,omitempty"`
+
+	ResourceGroupId string `json:"resourceGroupId,omitempty"`
 }
 
 type DescribeDisksResponse struct {
@@ -1551,6 +1569,8 @@ type DescribeNicsRequest struct {
 	PageSize int `json:"pageSize,omitempty"`
 
 	PageNum int `json:"pageNum,omitempty"`
+
+	ResourceGroupId string `json:"resourceGroupId,omitempty"`
 }
 
 type ModifyNicsAttributeResponse struct {
@@ -1677,7 +1697,11 @@ type UnAssignNicIpv4Request struct {
 
 	NicId string `json:"nicId,omitempty"`
 
+	// Deprecated: 请使用 ipAddresses 替代
 	IpAddress string `json:"ipAddress,omitempty"`
+
+	// IpAddresses 需要解绑的内网IPv4地址。
+	IpAddresses []string `json:"ipAddresses,omitempty"`
 }
 
 type AssignNicIpv4Response struct {
@@ -1696,6 +1720,16 @@ type AssignNicIpv4Request struct {
 	NicId string `json:"nicId,omitempty"`
 
 	IpAddress string `json:"ipAddress,omitempty"`
+
+}
+
+type BatchAssignNetworkInterfaceIpv4ResponseParams struct {
+
+	RequestId *string `json:"requestId,omitempty"`
+
+	// IpAddresses 绑定的内网IP地址。
+	IpAddresses []string `json:"ipAddresses,omitempty"`
+
 }
 
 type BatchAssignNicIpv4Response struct {
@@ -1703,10 +1737,9 @@ type BatchAssignNicIpv4Response struct {
 
 	RequestId string `json:"requestId,omitempty"`
 
-	Response struct {
-		RequestId string `json:"requestId,omitempty"`
-	} `json:"response"`
+	Response *BatchAssignNetworkInterfaceIpv4ResponseParams `json:"response,omitempty"`
 }
+
 
 type BatchAssignNicIpv4Request struct {
 	*common.BaseRequest
@@ -1714,6 +1747,9 @@ type BatchAssignNicIpv4Request struct {
 	NicId string `json:"nicId,omitempty"`
 
 	IpAddresses []string `json:"ipAddresses,omitempty"`
+
+	// IpAddressCount 指定额外绑定的内网IP数量。 该字段和`ipAddresses`必须指定其一，如果都指定，则会以 `ipAddresses` 有效。
+	IpAddressCount *int `json:"ipAddressCount,omitempty"`
 }
 
 type DetachNicResponse struct {
@@ -1940,6 +1976,7 @@ type InstanceTypeQuotaItem struct {
 	InstanceType                 string   `json:"instanceType,omitempty"`
 	CpuCount                     int      `json:"cpuCount,omitempty"`
 	Memory                       int      `json:"memory,omitempty"`
+	WithStock                    bool     `json:"withStock,omitempty"`
 	Frequency                    string   `json:"frequency,omitempty"`
 	InternetMaxBandwidthOutLimit int      `json:"internetMaxBandwidthOutLimit,omitempty"`
 	InstanceTypeName             string   `json:"instanceTypeName,omitempty"`
@@ -2176,6 +2213,8 @@ type DescribeEipsRequest struct {
 
 	// CidrIds 按照 EIP 所属的CIDR ID列表 过滤。
 	CidrIds []string `json:"cidrIds,omitempty"`
+
+	ResourceGroupId string `json:"resourceGroupId,omitempty"`
 }
 
 type DescribeEipsResponse struct {
@@ -3079,6 +3118,7 @@ type DescribeNatGatewaysRequest struct {
     // PageNum 返回的分页页码。默认为1。
     PageNum *int `json:"pageNum,omitempty"`
 
+    ResourceGroupId string `json:"resourceGroupId,omitempty"`
 }
 
 type DescribeNatGatewaysResponseParams struct {
@@ -3698,5 +3738,31 @@ type DescribeInstanceMonitorDataResponse struct {
 
     Response *DescribeInstanceMonitorDataResponseParams `json:"response,omitempty"`
 
+}
+
+
+
+type DescribeAvailableBorderGatewayRequest struct {
+    *common.BaseRequest
+
+    // NatGatewayId NAT网关 ID。
+    NatGatewayId *string `json:"natGatewayId,omitempty"`
+
+}
+
+type DescribeAvailableBorderGatewayResponseParams struct {
+
+    RequestId *string `json:"requestId,omitempty"`
+
+    ZbgId *string `json:"zbgId,omitempty"`
+
+}
+
+type DescribeAvailableBorderGatewayResponse struct {
+    *common.BaseResponse
+
+    RequestId *string `json:"requestId,omitempty"`
+
+    Response *DescribeAvailableBorderGatewayResponseParams `json:"response,omitempty"`
 }
 
