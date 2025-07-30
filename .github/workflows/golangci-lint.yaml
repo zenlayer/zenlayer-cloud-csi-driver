@@ -1,0 +1,19 @@
+---
+name: golangci-lint
+# yamllint disable-line rule:truthy
+on:
+  pull_request:
+    branches:
+      - '*'
+permissions:
+  contents: read
+
+jobs:
+  golangci-lint:
+    name: golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      # yamllint disable-line rule:line-length
+      - uses: actions/checkout@v1.0
+      - name: golangci-lint
+        run: make containerized-test TARGET=go-lint

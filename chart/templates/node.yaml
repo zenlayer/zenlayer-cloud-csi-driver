@@ -1,0 +1,162 @@
+---
+kind: DaemonSet
+apiVersion: apps/v1
+metadata:
+  name: csi-zecplugin
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: csi-zecplugin
+  template:
+    metadata:
+      labels:
+        app: csi-zecplugin
+    spec:
+      serviceAccountName: zenlayer-csi-nodeplugin
+      hostPID: true
+      priorityClassName: system-node-critical
+      containers:
+        - name: csi-zecplugin
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["SYS_ADMIN"]
+            allowPrivilegeEscalation: true
+          image: {{ .Values.images.zecRegistry }}{{ .Values.images.node.repo }}{{ .Values.images.node.tag }}
+          args:
+            - "--nodename=$(NODE_ID)"
+            - "--endpoint=unix://csi/csi.sock"
+            - "--secretpathAK=/etc/zec_secret/AccessKeyID"
+            - "--secretpathPW=/etc/zec_secret/AccessKeyPassword"
+            - "--drivertype=node"
+            - "--maxvolume={{ .Values.maxVolume }}"
+          {{ if .Values.featureGates }}            
+            - "--featureGates={{ .Values.featureGates }}"
+          {{ end }}            
+            - "--mixDriver={{ .Values.mixDriver }}" 
+            - "--defaultZone={{ .Values.defaultZone }}"
+            - "--defaultGroup={{ .Values.defaultResourceGroup }}"
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          imagePullPolicy: {{ .Values.pullPolicy }}
+          resources:
+            limits:
+              memory: 2100Mi
+            requests:
+              cpu: 10m
+              memory: 20Mi
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /csi
+            - mountPath: /dev
+              name: host-dev
+            - mountPath: /sys
+              name: host-sys
+              readOnly: true
+            - mountPath: /run/mount
+              name: host-mount
+            - mountPath: /etc/selinux
+              name: etc-selinux
+              readOnly: true
+            - mountPath: /lib/modules
+              name: lib-modules
+              readOnly: true
+            - name: plugin-dir
+              mountPath: /var/lib/kubelet/plugins
+              mountPropagation: "Bidirectional"
+            - name: mountpoint-dir
+              mountPath: /var/lib/kubelet/pods
+              mountPropagation: "Bidirectional"
+            - name: keys-tmp-dir
+              mountPath: /tmp/csi/keys
+        - name: driver-registrar
+          securityContext:
+            privileged: true
+            allowPrivilegeEscalation: true
+          image: {{ .Values.images.registry }}{{ .Values.images.pluginRegistrar.repo }}{{ .Values.images.pluginRegistrar.tag }}
+          args:
+            - "--v=3"
+            - "--csi-address=/csi/csi.sock"
+            - "--kubelet-registration-path=/var/lib/kubelet/plugins/csi.sock"
+          env:
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /csi
+            - name: registration-dir
+              mountPath: /registration
+          resources:
+            limits:
+              memory: 100Mi
+            requests:
+              cpu: 10m
+              memory: 20Mi
+          imagePullPolicy: {{ .Values.pullPolicy}}
+        - name: liveness-probe
+          image: {{ .Values.images.registry }}{{ .Values.images.livenessProbe.repo }}{{ .Values.images.livenessProbe.tag }}
+          args:
+            - "--csi-address=/csi/csi.sock"
+            - "--probe-timeout=10s"
+            - "--http-endpoint=localhost:29633"
+            - "--v=3"
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /csi
+          resources:
+            limits:
+              memory: 100Mi
+            requests:
+              cpu: 10m
+              memory: 20Mi
+          imagePullPolicy: {{ .Values.pullPolicy}}
+      volumes:
+        - name: socket-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins/
+            type: DirectoryOrCreate
+        - name: plugin-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins
+            type: Directory
+        - name: mountpoint-dir
+          hostPath:
+            path: /var/lib/kubelet/pods
+            type: DirectoryOrCreate
+        - name: registration-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins_registry/
+            type: Directory
+        - name: host-dev
+          hostPath:
+            path: /dev
+        - name: host-sys
+          hostPath:
+            path: /sys
+        - name: etc-selinux
+          hostPath:
+            path: /etc/selinux
+        - name: host-mount
+          hostPath:
+            path: /run/mount
+        - name: lib-modules
+          hostPath:
+            path: /lib/modules
+        - name: keys-tmp-dir
+          emptyDir: {
+            medium: "Memory"
+          }
