@@ -1,11 +1,14 @@
 # github.com/container-storage-interface/spec v1.5.0
 ## explicit; go 1.16
 github.com/container-storage-interface/spec/lib/go/csi
+# github.com/fxamacker/cbor/v2 v2.8.0
+## explicit; go 1.20
+github.com/fxamacker/cbor/v2
 # github.com/go-logr/logr v1.4.2
 ## explicit; go 1.18
 github.com/go-logr/logr
-# github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
-## explicit
+# github.com/gogo/protobuf v1.3.2
+## explicit; go 1.15
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/sortkeys
 # github.com/golang/protobuf v1.3.2
@@ -18,21 +21,31 @@ github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/protobuf/ptypes/wrappers
-# github.com/google/go-cmp v0.7.0
-## explicit; go 1.21
-# github.com/google/gofuzz v1.0.0
+# github.com/json-iterator/go v1.1.12
 ## explicit; go 1.12
-github.com/google/gofuzz
+github.com/json-iterator/go
 # github.com/kubernetes-csi/csi-lib-utils v0.6.1
 ## explicit
 github.com/kubernetes-csi/csi-lib-utils/protosanitizer
 # github.com/moby/sys/mountinfo v0.7.2
 ## explicit; go 1.17
 github.com/moby/sys/mountinfo
+# github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
+## explicit
+github.com/modern-go/concurrent
+# github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee
+## explicit; go 1.12
+github.com/modern-go/reflect2
+# github.com/x448/float16 v0.8.4
+## explicit; go 1.11
+github.com/x448/float16
 # github.com/zenlayer/zenlayercloud-sdk-go v0.1.27
 ## explicit; go 1.9
 github.com/zenlayer/zenlayercloud-sdk-go/zenlayercloud/common
 github.com/zenlayer/zenlayercloud-sdk-go/zenlayercloud/zec20240401
+# go.yaml.in/yaml/v2 v2.4.2
+## explicit; go 1.15
+go.yaml.in/yaml/v2
 # golang.org/x/net v0.42.0
 ## explicit; go 1.23.0
 golang.org/x/net/context
@@ -96,11 +109,10 @@ google.golang.org/grpc/tap
 # gopkg.in/inf.v0 v0.9.1
 ## explicit
 gopkg.in/inf.v0
-# gopkg.in/yaml.v2 v2.4.0
-## explicit; go 1.15
-# k8s.io/apimachinery v0.0.0-20190823012420-8ca64af22337
-## explicit; go 1.12
+# k8s.io/apimachinery v0.34.0-beta.0
+## explicit; go 1.24.0
 k8s.io/apimachinery/pkg/api/errors
+k8s.io/apimachinery/pkg/api/operation
 k8s.io/apimachinery/pkg/api/resource
 k8s.io/apimachinery/pkg/apis/meta/v1
 k8s.io/apimachinery/pkg/conversion
@@ -109,6 +121,8 @@ k8s.io/apimachinery/pkg/fields
 k8s.io/apimachinery/pkg/labels
 k8s.io/apimachinery/pkg/runtime
 k8s.io/apimachinery/pkg/runtime/schema
+k8s.io/apimachinery/pkg/runtime/serializer/cbor/direct
+k8s.io/apimachinery/pkg/runtime/serializer/cbor/internal/modes
 k8s.io/apimachinery/pkg/selection
 k8s.io/apimachinery/pkg/types
 k8s.io/apimachinery/pkg/util/errors
@@ -147,8 +161,23 @@ k8s.io/kubernetes/pkg/util/resizefs
 k8s.io/mount-utils
 # k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
 ## explicit; go 1.18
+k8s.io/utils/clock
 k8s.io/utils/exec
+k8s.io/utils/internal/third_party/forked/golang/net
 k8s.io/utils/io
 k8s.io/utils/keymutex
+k8s.io/utils/net
 k8s.io/utils/nsenter
 k8s.io/utils/path
+k8s.io/utils/ptr
+# sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8
+## explicit; go 1.23
+sigs.k8s.io/json
+sigs.k8s.io/json/internal/golang/encoding/json
+# sigs.k8s.io/randfill v1.0.0
+## explicit; go 1.18
+sigs.k8s.io/randfill
+sigs.k8s.io/randfill/bytesource
+# sigs.k8s.io/structured-merge-diff/v6 v6.2.0
+## explicit; go 1.23
+sigs.k8s.io/structured-merge-diff/v6/value
