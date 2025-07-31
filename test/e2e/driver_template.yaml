@@ -1,0 +1,26 @@
+StorageClass:
+  FromName: true
+DriverInfo:
+  Name: disk.csi.zenlayer.com
+  RequiredAccessModes:
+    - ReadWriteOnce          
+  Capabilities:
+    persistence: true         
+    multipods: true           
+    controllerExpansion: true 
+    nodeExpansion: true       
+    onlineExpansion: true     
+    volumeLimits: true        
+    exec: false               
+    singleNodeVolume: true    
+    topology: true
+    block: false              
+    fsGroup: false
+    snapshotDataSource: false 
+    pvcDataSource: false      
+  TopologyKeys:
+    - topology.disk.csi.zenlayer.com/Vm-type
+    - topology.disk.csi.zenlayer.com/zone
+  SupportedSizeRange:
+    Min: 20Gi
+    Max: 32768Gi

@@ -1,0 +1,230 @@
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: csi-zecplugin-provisioner
+  namespace: kube-system
+spec:
+  replicas:  {{ .Values.replicaCount }}     
+  selector:
+    matchLabels:
+      app: csi-zecplugin-provisioner
+  template:
+    metadata:
+      labels:
+        app: csi-zecplugin-provisioner
+    spec:
+      {{ if .Values.controllerSelectorkey }}
+      nodeSelector:
+        {{ .Values.controllerSelectorkey }}: {{ .Values.controllerSelectorval }}
+      {{ end }}
+      hostNetwork: true
+      dnsPolicy: ClusterFirst
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - csi-zecplugin-provisioner
+              topologyKey: "kubernetes.io/hostname"
+      serviceAccountName: zenlayer-csi-provisioner
+      priorityClassName: system-cluster-critical  
+      containers:  
+        - name: csi-zecplugin-provisioner
+          {{ if .Values.mixDriver }}
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["SYS_ADMIN"]
+            allowPrivilegeEscalation: true
+          {{ end }}
+          image: {{ .Values.images.zecRegistry }}{{ .Values.images.controller.repo }}{{ .Values.images.controller.tag }}
+          args:
+            - "--nodename=$(NODE_ID)"
+            - "--endpoint=unix://csi/csi.sock"
+            - "--secretpathAK=/etc/zec_secret/AccessKeyID"
+            - "--secretpathPW=/etc/zec_secret/AccessKeyPassword"
+            - "--drivertype=controller"
+            - "--maxvolume={{ .Values.maxVolume }}"
+          {{ if .Values.featureGates }}            
+            - "--featureGates={{ .Values.featureGates }}"
+          {{ end }}            
+            - "--mixDriver={{ .Values.mixDriver }}"
+            - "--defaultZone={{ .Values.defaultZone }}"
+            - "--defaultGroup={{ .Values.defaultResourceGroup }}"
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          imagePullPolicy: {{ .Values.pullPolicy}}
+          resources:
+            limits:
+              memory: 2100Mi
+            requests:
+              cpu: 10m
+              memory: 20Mi
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /csi
+            - mountPath: /dev
+              name: host-dev
+            - mountPath: /sys
+              name: host-sys
+              readOnly: true
+            - mountPath: /lib/modules
+              name: lib-modules
+              readOnly: true
+            - name: zec-secret
+              mountPath: /etc/zec_secret/
+        - name: csi-provisioner
+          image: {{ .Values.images.registry }}{{ .Values.images.externalProvisioner.repo }}{{ .Values.images.externalProvisioner.tag }}
+          args:
+            - "--csi-address=$(ADDRESS)"
+            - "--v=3"
+            - "--timeout=150s"
+            - "--retry-interval-start=500ms"
+            - "--retry-interval-max=30m"
+            - "--leader-election=true"
+            - "--leader-election-namespace=kube-system"
+            - "--feature-gates=HonorPVReclaimPolicy=true"
+            - "--prevent-volume-mode-conversion=true"
+            - "--default-fstype=ext4"
+            - "--extra-create-metadata=true"
+            - "--immediate-topology=false"
+            - "--http-endpoint=$(POD_IP):8090"
+            - "--kube-api-qps=50"
+            - "--kube-api-burst=100"
+          env:
+            - name: ADDRESS
+              value: /csi/csi.sock
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          imagePullPolicy: {{ .Values.pullPolicy}}
+          ports:
+            - containerPort: 8090
+              name: http-endpoint
+              protocol: TCP
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /csi
+          resources:
+            limits:
+              memory: 500Mi
+            requests:
+              cpu: 10m
+              memory: 20Mi
+        - name: csi-attacher
+          image: {{ .Values.images.registry }}{{ .Values.images.externalAttacher.repo }}{{ .Values.images.externalAttacher.tag }}
+          args:
+            - "--v=3"
+            - "--csi-address=$(ADDRESS)"
+            - "--leader-election=true"
+            - "--retry-interval-start=500ms"
+            - "--default-fstype=ext4"
+            - "--http-endpoint=$(POD_IP):8093"
+            - "--timeout=60s"
+            - "--kube-api-qps=100"
+            - "--kube-api-burst=200"
+            - "--worker-threads=8"
+          env:
+            - name: ADDRESS
+              value: /csi/csi.sock
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          imagePullPolicy: {{ .Values.pullPolicy}}
+          ports:
+            - containerPort: 8093
+              name: http-endpoint
+              protocol: TCP
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /csi
+          resources:
+            limits:
+              memory: 500Mi
+            requests:
+              cpu: 10m
+              memory: 20Mi
+        - name: csi-resizer
+          image: {{ .Values.images.registry }}{{ .Values.images.externalResizer.repo }}{{ .Values.images.externalResizer.tag }}
+          args:
+            - "--csi-address=$(ADDRESS)"
+            - "--v=3"
+            - "--timeout=150s"
+            - "--leader-election"
+            - "--leader-election-namespace=kube-system"
+            - "--retry-interval-start=500ms"
+            - "--handle-volume-inuse-error=false"
+            - "--feature-gates=RecoverVolumeExpansionFailure=true"
+            - "--http-endpoint=$(POD_IP):8091"
+          env:
+            - name: ADDRESS
+              value: /csi/csi.sock
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          imagePullPolicy: {{ .Values.pullPolicy}}
+          ports:
+            - containerPort: 8091
+              name: http-endpoint
+              protocol: TCP
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /csi
+          resources:
+            limits:
+              memory: 500Mi
+            requests:
+              cpu: 10m
+              memory: 20Mi
+        - name: liveness-probe
+          image: {{ .Values.images.registry }}{{ .Values.images.livenessProbe.repo }}{{ .Values.images.livenessProbe.tag }}
+          args: 
+            - "--csi-address=/csi/csi.sock"
+            - "--probe-timeout=10s"
+            - "--http-endpoint=localhost:29632"
+            - "--v=3"
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /csi
+          resources:
+            limits:
+              memory: 100Mi
+            requests:
+              cpu: 10m
+              memory: 20Mi
+          imagePullPolicy: {{ .Values.pullPolicy}}
+      volumes:
+        - name: host-dev
+          hostPath:
+            path: /dev
+        - name: host-sys
+          hostPath:
+            path: /sys
+        - name: lib-modules
+          hostPath:
+            path: /lib/modules
+        - name: socket-dir
+          emptyDir: {
+            medium: "Memory"
+          }
+        - name: zec-secret
+          secret:
+            secretName: csi-access-key

@@ -1,0 +1,55 @@
+Random Seed: 1753844937
+
+Will run 91 of 92 specs
+SSSSSSSSSSSSSS•SSSS
+------------------------------
+P [PENDING]
+Controller Service [Controller Server] ListVolumes pagination should detect volumes added between pages and accept tokens when the last volume from a page is deleted
+/root/csi-test-5.3.1/pkg/sanity/controller.go:265
+------------------------------
+••••••
+------------------------------
+• [FAILED] [1.659 seconds]
+Controller Service [Controller Server] CreateVolume [It] should not fail when creating volume with maximum-length name
+/root/csi-test-5.3.1/pkg/sanity/controller.go:531
+
+  Timeline >>
+  STEP: reusing connection to CSI driver at unix:///csi/csi.sock @ 07/30/25 03:10:58.459
+  STEP: reusing connection to CSI driver controller at unix:///csi/csi.sock @ 07/30/25 03:10:58.459
+  STEP: creating mount and staging directories @ 07/30/25 03:10:58.459
+  STEP: creating a volume @ 07/30/25 03:10:58.46
+  [FAILED] in [It] - /root/csi-test-5.3.1/pkg/sanity/controller.go:536 @ 07/30/25 03:11:00.118
+  << Timeline
+
+  [FAILED] volume create failed
+  Unexpected error:
+      <*status.Error | 0xc000062000>:
+      rpc error: code = Internal desc = [ZenlayerCloudSdkError] Code=INVALID_PARAMETER_EXCEED_LENGTH, Message=The value of parameter `diskName` is exceed maximum length: 64, RequestId=T94606B5F-83F3-44A4-B501-C2F28AC7BA86sanity-controller-create-maxlen-A2D22A1A-8DB69758aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      {
+          s: {
+              s: {
+                  state: {
+                      NoUnkeyedLiterals: {},
+                      DoNotCompare: [],
+                      DoNotCopy: [],
+                      atomicMessageInfo: nil,
+                  },
+                  sizeCache: 0,
+                  unknownFields: nil,
+                  Code: 13,
+                  Message: "[ZenlayerCloudSdkError] Code=INVALID_PARAMETER_EXCEED_LENGTH, Message=The value of parameter `diskName` is exceed maximum length: 64, RequestId=T94606B5F-83F3-44A4-B501-C2F28AC7BA86sanity-controller-create-maxlen-A2D22A1A-8DB69758aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  Details: nil,
+              },
+          },
+      }
+  occurred
+  In [It] at: /root/csi-test-5.3.1/pkg/sanity/controller.go:536 @ 07/30/25 03:11:00.118
+------------------------------
+SSSSSS••••••••••S••S•••••••••SSSSSSSSSSSSS•••••••••••••••••••••••
+
+Summarizing 1 Failure:
+  [FAIL] Controller Service [Controller Server] CreateVolume [It] should not fail when creating volume with maximum-length name     //zec limit volume length  
+  /root/csi-test-5.3.1/pkg/sanity/controller.go:536
+
+Ran 52 of 92 Specs in 1026.625 seconds
+FAIL! -- 51 Passed | 1 Failed | 1 Pending | 39 Skipped

@@ -1,0 +1,38 @@
+replicaCount: 3                 ## controller type csi Number of copies
+controllerSelectorkey: ""       ## controller type csi pod selector lable key. If you want to control the node where the pod is located 
+controllerSelectorval: ""       ## controller type csi pod selectot lable val. If you want to control the node where the pod is located
+maxVolume: 9                    ## max attach volume num each node
+defaultZone: ""                 ## if your k8s cluster is deployed in one zenlayer region and only have one ResourceGroup, do not need config zone in storage-class. You can set this val when deployed csi driver
+defaultResourceGroup: ""        ## if your k8s cluster is deployed in one zenlayer region and only have one ResourceGroup, do not need config group in storage-class. You can set this val when deployed csi driver 
+
+featureGates: ""                ## support "enable_mount_opt", if open, csi will support config mount options in storage-class
+  
+mixDriver: false                ## if true, controller will also do node-type job. Don't open it unless you know what you are doing
+
+images:
+  pullPolicy: IfNotPresent
+  
+  zecRegistry: "docker.io/"     ## zenlayer csi driver image registry
+  registry: "registry.k8s.io/"  # sidecar 
+
+  controller:
+    repo: "zenlayer297/zeccsi:"
+    tag: "v1.0.0"
+  node:
+    repo: "zenlayer297/zeccsi:"
+    tag: "v1.0.0"
+  externalAttacher:
+    repo: "sig-storage/csi-attacher:"    
+    tag: "v4.6.1"
+  externalProvisioner:
+    repo: "sig-storage/csi-provisioner:"
+    tag: "v5.2.0"
+  externalResizer:
+    repo: "sig-storage/csi-resizer:"
+    tag: "v1.8.0"
+  pluginRegistrar:
+    repo: "sig-storage/csi-node-driver-registrar:"
+    tag: "v2.8.0"
+  livenessProbe:
+    repo: "sig-storage/livenessprobe:"
+    tag: "v2.8.0"

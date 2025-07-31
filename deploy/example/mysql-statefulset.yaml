@@ -1,0 +1,119 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+type: Opaque
+stringData:
+  MYSQL_ROOT_PASSWORD: rootpass123
+  MYSQL_REPLICATION_PASSWORD: replpass123
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-config
+data:
+  primary.cnf: |
+    [mysqld]
+    server-id=1
+    log-bin
+  replica.cnf: |
+    [mysqld]
+    server-id=2
+    relay-log
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-headless
+spec:
+  clusterIP: None
+  selector:
+    app: mysql
+  ports:
+    - port: 3306
+      name: mysql
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+spec:
+  selector:
+    app: mysql
+  ports:
+    - port: 3306
+      name: mysql
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+spec:
+  serviceName: mysql-headless
+  replicas: 2
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Delete     # 默认为Retian,即删除statefulset后不会保留pvc，再次应用yaml后pod还会选到原来的pvc
+    whenScaled: Delete
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      initContainers:
+        - name: configure-mysql
+          image: docker.io/library/busybox:latest
+          command:
+            - sh
+            - -c
+            - |
+              if [ "${HOSTNAME##*-}" = "0" ]; then
+                cp /configs/primary.cnf /config-out
+              else
+                cp /configs/replica.cnf /config-out
+              fi
+          volumeMounts:
+            - name: configs
+              mountPath: /configs
+            - name: config-out
+              mountPath: /etc/mysql/conf.d
+      containers:
+        - name: mysql
+          image: docker.io/mysql:8.0
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_ROOT_PASSWORD
+            - name: MYSQL_REPLICATION_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_REPLICATION_PASSWORD
+          ports:
+            - containerPort: 3306
+              name: mysql
+          volumeMounts:
+            - name: config-out
+              mountPath: /etc/mysql/conf.d
+            - name: data
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: configs
+          configMap:
+            name: mysql-config
+        - name: config-out
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: csi-zec
+        resources:
+          requests:
+            storage: 21Gi
