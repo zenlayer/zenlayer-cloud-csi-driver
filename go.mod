@@ -10,7 +10,7 @@ require (
 	github.com/kubernetes-csi/csi-lib-utils v0.6.1
 	github.com/zenlayer/zenlayercloud-sdk-go v0.1.27
 	golang.org/x/net v0.42.0
-	golang.org/x/sys v0.34.0
+	golang.org/x/sys v0.36.0
 	google.golang.org/grpc v1.26.0
 	k8s.io/apimachinery v0.0.0-20190823012420-8ca64af22337
 	k8s.io/client-go v0.0.0-20190823012814-cdbd92c111cf
