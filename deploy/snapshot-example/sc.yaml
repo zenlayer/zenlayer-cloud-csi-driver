@@ -1,0 +1,23 @@
+apiVersion: storage.k8s.io/v1 #simple storageclass
+kind: StorageClass
+metadata:
+  name: csi-zec
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: disk.csi.zenlayer.com
+parameters:
+  fsType: "xfs"
+reclaimPolicy: Delete                      
+allowVolumeExpansion: true               
+volumeBindingMode: Immediate    
+---
+apiVersion: snapshot.storage.k8s.io/v1 #snap storageclass
+kind: VolumeSnapshotClass
+metadata:
+  name: csi-zecsnap
+  annotations:
+    snapshot.storage.kubernetes.io/is-default-class: "true"
+driver: disk.csi.zenlayer.com
+deletionPolicy: Delete
+parameters:
+  tags: value

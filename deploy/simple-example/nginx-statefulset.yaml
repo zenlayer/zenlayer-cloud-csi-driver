@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  clusterIP: None
+  selector:
+    app: nginx
+  ports:
+    - name: web
+      port: 80
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-nodeport
+  labels:
+    app: nginx
+spec:
+  type: NodePort
+  selector:
+    app: nginx
+  ports:
+    - name: web
+      port: 80        
+      targetPort: 80   
+      nodePort: 30080  
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: web
+spec:
+  serviceName: "nginx"      
+  replicas: 5   
+  selector:
+    matchLabels:
+      app: nginx           
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: nginx
+        image: docker.io/nginx:1.27.0
+        ports:
+        - containerPort: 80
+          name: web
+        volumeMounts:
+        - name: www
+          mountPath: /usr/share/nginx/html
+          #readOnly: true     # if need readonly fs
+  volumeClaimTemplates:
+  - metadata:
+      name: www
+    spec:
+      accessModes: ["ReadWriteOncePod"]
+      resources:
+        requests:
+          storage: 30Gi
+      storageClassName: csi-zec 

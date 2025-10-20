@@ -1,0 +1,139 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: csi-fluent-bit
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: csi-fluent-bit-role
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+      - namespaces
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources:
+      - pods/log
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources:
+      - nodes
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: csi-fluent-bit-role-binding
+subjects:
+  - kind: ServiceAccount
+    name: csi-fluent-bit
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: csi-fluent-bit-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: csi-fluent-bit-config
+  namespace: kube-system
+data:
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush        1
+        Daemon       Off
+        Log_Level    info
+
+    [INPUT]
+        Name              tail
+        Path              /var/log/containers/csi-zecplugin*
+        Tag               csi.*
+        DB                /var/log/fluent-bit/state/flb_csi.db
+        Mem_Buf_Limit     20MB
+        Skip_Long_Lines   On
+        Rotate_Wait       5
+        Refresh_Interval  60
+
+    [FILTER]
+        Name                kubernetes
+        Match               csi.*
+
+    [OUTPUT]
+        Name    file
+        Match   csi.*
+        Path    /var/log/
+        File    zenlayer_csi_logsbackups_fluent.log
+        Format  plain
+        Mkdir   true
+        Template        {time} {message}
+        Workers         1
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: csi-fluent-bit
+  namespace: kube-system
+  labels:
+    app: csi-fluent-bit
+spec:
+  selector:
+    matchLabels:
+      app: csi-fluent-bit
+  template:
+    metadata:
+      labels:
+        app: csi-fluent-bit
+    spec:
+      serviceAccountName: csi-fluent-bit
+      containers:
+        - name: csi-fluent-bit
+          image: fluent/fluent-bit:3.1.9
+          resources:
+            limits:
+              cpu: 200m
+              memory: 500Mi
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          volumeMounts:
+            - name: varlog-containers
+              mountPath: /var/log/containers
+              readOnly: true
+            - name: logdir
+              mountPath: /var/log/
+            - name: varlog-pods
+              mountPath: /var/log/pods
+              readOnly: true
+            - name: state
+              mountPath: /var/log/fluent-bit/state
+            - name: config-volume
+              mountPath: /fluent-bit/etc
+              readOnly: true
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+      volumes:
+        - name: varlog-containers
+          hostPath:
+            path: /var/log/containers
+            type: Directory
+        - name: logdir
+          hostPath:
+            path: /var/log/
+            type: Directory
+        - name: varlog-pods
+          hostPath:
+            path: /var/log/pods
+            type: Directory
+        - name: state
+          hostPath:
+            path: /var/log/fluent-bit/state
+            type: DirectoryOrCreate
+        - name: config-volume
+          configMap:
+            name: csi-fluent-bit-config

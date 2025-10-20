@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-raw-block
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOncePod
+  volumeMode: Block
+  storageClassName: csi-zec
+  resources:
+    requests:
+      storage: 22Gi
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-with-block
+  namespace: default
+spec:
+  containers:
+    - name: app
+      image: ubuntu:latest
+      command:
+        - "/bin/sh"
+        - "-c"
+        - |
+          while [ ! -b /dev/block0 ]; do sleep 1; done
+          dd if=/dev/zero of=/dev/block0 bs=512 count=1
+          dd if=/dev/block0 bs=512 count=1 | hexdump -C
+          sleep 3600
+      volumeDevices:
+        - name: raw-dev
+          devicePath: /dev/block0
+  volumes:
+    - name: raw-dev
+      persistentVolumeClaim:
+        claimName: pvc-raw-block

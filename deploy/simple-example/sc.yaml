@@ -1,0 +1,23 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: csi-zec
+provisioner: disk.csi.zenlayer.com
+parameters:
+reclaimPolicy: Delete                      
+allowVolumeExpansion: true               
+volumeBindingMode: Immediate    
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: csi-zec-gz
+provisioner: disk.csi.zenlayer.com
+parameters:
+  fsType: "xfs"
+  type: "1"
+  zoneID: "xxx"         
+  placeGroupID: "xxx"    
+reclaimPolicy: Delete                   
+allowVolumeExpansion: true               
+volumeBindingMode: WaitForFirstConsumer 

@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: file-pvc3
+spec:
+  accessModes:
+    - ReadWriteOncePod  
+  volumeMode: Filesystem
+  storageClassName: csi-zec
+  resources:
+    requests:
+      storage: 60Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: file-pvc4
+spec:
+  accessModes:
+    - ReadWriteOncePod  
+  volumeMode: Filesystem
+  storageClassName: csi-zec
+  resources:
+    requests:
+      storage: 80Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment3
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  replicas: 1     
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      nodeName: node2
+      containers:
+      - name: nginx-test
+        image: docker.io/nginx:1.27.0
+        volumeMounts:
+        - mountPath: /usr/share/nginx/html
+          name: nginx-data1
+        - mountPath: /usr/share/nginx/html2
+          name: nginx-data2
+        ports:
+        - containerPort: 80
+      volumes:
+      - name: nginx-data1
+        persistentVolumeClaim:
+          claimName: file-pvc3
+          #readOnly: true     # if need readonly fs
+      - name: nginx-data2
+        persistentVolumeClaim:
+          claimName: file-pvc4

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-clone
+  namespace: testns
+spec:
+  storageClassName: csi-zec #target storageclass
+  accessModes:
+    - ReadWriteOncePod
+  resources:
+    requests:
+      storage: 22Gi
+  dataSource:
+    name: pvc-origin-snap
+    kind: VolumeSnapshot  #kind only support VolumeSnapshot
+    apiGroup: snapshot.storage.k8s.io
