@@ -11,7 +11,7 @@ require (
 	github.com/zenlayer/zenlayercloud-sdk-go v0.2.0
 	golang.org/x/net v0.42.0
 	golang.org/x/sys v0.34.0
-	google.golang.org/grpc v1.26.0
+	google.golang.org/grpc v1.76.0
 	google.golang.org/protobuf v1.36.9
 	k8s.io/apimachinery v0.0.0-20190823012420-8ca64af22337
 	k8s.io/client-go v0.0.0-20190823012814-cdbd92c111cf
@@ -22,9 +22,8 @@ require (
 )
 
 require (
-	github.com/go-logr/logr v1.4.2 // indirect
+	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d // indirect
-	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/gofuzz v1.0.0 // indirect
 	github.com/moby/sys/mountinfo v0.7.2 // indirect
 	golang.org/x/text v0.27.0 // indirect
