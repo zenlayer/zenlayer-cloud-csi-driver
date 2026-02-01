@@ -1,8 +1,6 @@
 module github.com/zenlayer/zenlayer-cloud-csi-driver
 
-go 1.24.2
-
-toolchain go1.24.3
+go 1.25.0
 
 require (
 	github.com/container-storage-interface/spec v1.5.0
@@ -10,19 +8,19 @@ require (
 	github.com/kubernetes-csi/csi-lib-utils v0.6.1
 	github.com/zenlayer/zenlayercloud-sdk-go v0.2.0
 	golang.org/x/net v0.42.0
-	golang.org/x/sys v0.34.0
+	golang.org/x/sys v0.38.0
 	google.golang.org/grpc v1.26.0
 	google.golang.org/protobuf v1.36.9
 	k8s.io/apimachinery v0.0.0-20190823012420-8ca64af22337
 	k8s.io/client-go v0.0.0-20190823012814-cdbd92c111cf
 	k8s.io/klog v0.4.0
 	k8s.io/kubernetes v1.14.1
-	k8s.io/mount-utils v0.33.3
-	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
+	k8s.io/mount-utils v0.35.0
+	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 )
 
 require (
-	github.com/go-logr/logr v1.4.2 // indirect
+	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/gofuzz v1.0.0 // indirect
