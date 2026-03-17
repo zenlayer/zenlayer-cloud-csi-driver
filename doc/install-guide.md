@@ -32,8 +32,8 @@ The driver requires All permissions to invoke Zenlayer Cloud OpenAPIs to manage 
 ### Automatic installation csi pod && Automatic pull image
 
 ```shell
-## view chart/values.yaml View the configurable parameters during installation
-helm install zeccsi oci://registry-1.docker.io/zenlayer297/zenlayer-cloud-csi-driver --version 1.0.0 --set defaultResourceGroup="" --set defaultZone="" --set maxVolume=6
+## view chart/values.yaml View the configurable parameters during installation, example:[--set maxVolume=5]
+helm install zeccsi oci://registry-1.docker.io/zenlayer297/zenlayer-cloud-csi-driver --version 1.0.0
 ```
 ### Manual installation csi pod && Automatic pull image
 

@@ -19,7 +19,4 @@ Helm Commands:
 
 helm pull oci://registry-1.docker.io/zenlayer297/zenlayer-cloud-csi-driver --version 1.0.0
 helm show all oci://registry-1.docker.io/zenlayer297/zenlayer-cloud-csi-driver --version 1.0.0
-helm template <my-release> oci://registry-1.docker.io/zenlayer297/zenlayer-cloud-csi-driver --version 1.0.0
-helm install <my-release> oci://registry-1.docker.io/zenlayer297/zenlayer-cloud-csi-driver --version 1.0.0
-helm upgrade <my-release> oci://registry-1.docker.io/zenlayer297/zenlayer-cloud-csi-driver --version <new-version>
 ```
