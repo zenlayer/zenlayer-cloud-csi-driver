@@ -20,7 +20,7 @@ type VolumeManager interface {
 	/*
 		action: Create a zec cloud disk
 	*/
-	CreateVolume(volName string, volSize int, volCategory string, zoneId string, resouceGroupID string) (volId string, err error)
+	CreateVolume(volName string, volSize int, volCategory string, zoneId string, resouceGroupID string, burstEnable bool) (volId string, err error)
 
 	/*
 		action: Delete a zec cloud disk
@@ -129,7 +129,7 @@ type SnapshotManager interface {
 	/*
 		action: create disk from exist snapshot
 	*/
-	CreateVolumeFromSnapshot(volName string, volSize int, volCategory string, zoneId string, resourceGroupID string, snapshotId string) (volId string, err error)
+	CreateVolumeFromSnapshot(volName string, volSize int, volCategory string, zoneId string, resourceGroupID string, snapshotId string, burstEnable bool) (volId string, err error)
 }
 
 type CloudManager interface {

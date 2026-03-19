@@ -9,12 +9,12 @@
 ## Zec-csi and Kubernetes Version Matrix
 | ZEC CSI Version | Container Orchestrator Name | Version Tested      |
 | -----------------| --------------------------- | -------------------|
-| v1.0.0          | Kubernetes                   |  v1.28.2 +         |
+| v1.1.0          | Kubernetes                   |  v1.28.2 +         |
 
 ## Zec-csi Feature Matrix
 | ZEC CSI Version  | Feature                                                          |
 | -----------------| -----------------------------------------------------------------|
-| v1.0.0           | Create/Delete/Attach/Detach/Resize/Snapshot/Topology Volume      |
+| v1.1.0           | Create/Delete/Attach/Detach/Resize/Snapshot/Topology Volume      |
 
 ## External-csi-sidecar Version Description
 | sidecar                             |    Current Version    |     Min CSI Spec Version  |       Container Image                                                        |       Min K8s Version    |   Recommended K8s Version     |
@@ -29,7 +29,7 @@
 ## Zenlayer-openApi-sdk Version [API Github](https://github.com/zenlayer/zenlayercloud-sdk-go)
 | ZEC CSI Version  | SDK Version                 |
 | -----------------| --------------------------- |
-| v1.0.0           | v0.2.0+                    |
+| v1.1.0           | v0.2.23+                    |
 
 ## Helm Version [Help Doc](./tools/helm.md)
 | Helm Version     |
@@ -111,12 +111,12 @@ kubectl get vsc
 * The logs of zeccsi driver are persisted to /var/log/zenlayer_csi_logsbackups_fluent.log. This log file will not be rotate and will not be automatically deleted. It will be continuously appended.
 
 ## Not supported feature Now
-* v1.0.0 do not support clone volume, only support create pvc from snapshot (dataSource:kind:VolumeSnapshot).
-* v1.0.0 do not support volumegroupsnapshots.
-* v1.0.0 Snapshots rely on pv， If pv is deleted, the snapshot created with this pv will be automatically deleted in the storage system, so will leaving vs and vsc resource in the k8s cluster. The vs resource is no longer available, you need to clean it up manually.
+* v1.1.0 do not support clone volume, only support create pvc from snapshot (dataSource:kind:VolumeSnapshot).
+* v1.1.0 do not support volumegroupsnapshots.
+* v1.1.0 Snapshots rely on pv， If pv is deleted, the snapshot created with this pv will be automatically deleted in the storage system, so will leaving vs and vsc resource in the k8s cluster. The vs resource is no longer available, you need to clean it up manually.
 
 ## Roadmap
-* Support open Cloud Disk Qos Burst
+* Consider adding configuration files
 
 [GoReportCard Widget]: https://goreportcard.com/badge/github.com/zenlayer/zenlayer-cloud-csi-driver
 [GoReportCardResult]: https://goreportcard.com/report/github.com/zenlayer/zenlayer-cloud-csi-driver

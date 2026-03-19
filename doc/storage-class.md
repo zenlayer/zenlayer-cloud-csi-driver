@@ -17,6 +17,7 @@ parameters:                                              //None of the parameter
   type: "1"                                              //cloud disk type：1 Basic NVMe SSD, 2 Standard NVMe SSD. If not setting, default is Standard NVME                                    
   zoneID: "asia-north-1a"                                //cloud disk zone，It only takes effect when volumeBindingMode=Immediate. If not setting in storageclass, You must specific this val when "helm install --set defaultResourceGroup="" --set defaultZone="""
   placeGroupID: "xxx"                                    //cloud disk zenlayer console resource group ID. If not setting in storageclass, You must specific this val when "helm install --set defaultResourceGroup="" --set defaultZone="""   
+  burstEnable: "false"                                   //cloud disk qos burst enable, true or false
 
 reclaimPolicy: Delete                                    //support "Delete" and "Retain". It is not recommended to use the Retain mode. Users need to manually delete the cloud disk specifically. It may cause data residue      
 

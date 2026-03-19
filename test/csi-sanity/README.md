@@ -8,7 +8,7 @@ Csi-sanity is a part of the Kubernetes CSI testing framework (CSI-Test), used to
 csi-test v5.3.1 (https://github.com/kubernetes-csi/csi-test/releases)     
 
 ## build env
-* helm install zeccsi oci://registry-1.docker.io/zenlayer297/zenlayer-cloud-csi-driver --version 1.0.0 --set defaultResourceGroup="" --set defaultZone="" --set maxVolume=6 --set mixDriver=true
+* helm install zeccsi oci://registry-1.docker.io/zenlayer297/zenlayer-cloud-csi-driver --version 1.1.0 --set defaultResourceGroup="" --set defaultZone="" --set maxVolume=6 --set mixDriver=true
 
 ## run test
 * kubectl cp ./csi-sanity -n=kube-system csi-zecplugin-provisioner-7f577b964c-86mhh:/         

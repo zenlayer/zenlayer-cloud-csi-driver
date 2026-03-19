@@ -17,6 +17,6 @@ A Chart deployed in a Kubernetes cluster using the helm install command is calle
 ```shell
 Helm Commands:
 
-helm pull oci://registry-1.docker.io/zenlayer297/zenlayer-cloud-csi-driver --version 1.0.0
-helm show all oci://registry-1.docker.io/zenlayer297/zenlayer-cloud-csi-driver --version 1.0.0
+helm pull oci://registry-1.docker.io/zenlayer297/zenlayer-cloud-csi-driver --version 1.1.0
+helm show all oci://registry-1.docker.io/zenlayer297/zenlayer-cloud-csi-driver --version 1.1.0
 ```

@@ -22,3 +22,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -
 ### Fixed
 - 
+
+## [1.1.0]
+### Added
+* Update zenlayercloud-sdk-go version from v0.2.0 to v0.2.23
+* Upgrade the dependency versions in go.mod
+* StorageClass Add support config CloudDisk Burst
+* docs modify
+### Changed
+-
+### Fixed
+- 

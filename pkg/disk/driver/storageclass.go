@@ -33,6 +33,7 @@ const (
 	StorageClassFsTypeName   = "fsType"       //ext3 ext4 xfs
 	StorageClassZoneId       = "zoneID"       //zone
 	StorageClassPlaceGroupID = "placeGroupID" //groupid
+	StorageClassBurstEnable  = "burstEnable"  //burst
 )
 
 type ZecStorageClass struct {
@@ -42,6 +43,7 @@ type ZecStorageClass struct {
 	fsType       string
 	zoneID       string
 	placeGroupID string
+	burstEnable  bool
 }
 
 func NewDefaultZecStorageClassFromType(diskType VolumeType) *ZecStorageClass {
@@ -55,6 +57,7 @@ func NewDefaultZecStorageClassFromType(diskType VolumeType) *ZecStorageClass {
 		fsType:       common.DefaultFileSystem,
 		zoneID:       "",
 		placeGroupID: "",
+		burstEnable:  false,
 	}
 }
 
@@ -71,6 +74,7 @@ func NewZecStorageClassFromMap(opt map[string]string) (*ZecStorageClass, error) 
 	fsType := "ext4"
 	zoneID := ""
 	placeGroupID := ""
+	burstenable := "false"
 	var err error
 
 	for k, v := range opt {
@@ -85,6 +89,8 @@ func NewZecStorageClassFromMap(opt map[string]string) (*ZecStorageClass, error) 
 			zoneID = v
 		case strings.ToLower(StorageClassPlaceGroupID):
 			placeGroupID = v
+		case strings.ToLower(StorageClassBurstEnable):
+			burstenable = v
 		}
 	}
 	if zoneID == "" || placeGroupID == "" {
@@ -122,6 +128,11 @@ func NewZecStorageClassFromMap(opt map[string]string) (*ZecStorageClass, error) 
 
 	sc.SetZone(zoneID)
 	sc.SetPlaceGroupID(placeGroupID)
+	if burstenable == "true" {
+		sc.SetBurstEnable(true)
+	} else {
+		sc.SetBurstEnable(false)
+	}
 
 	return sc, nil
 }
@@ -154,6 +165,10 @@ func (sc ZecStorageClass) GetPlaceGroupID() string {
 	return sc.placeGroupID
 }
 
+func (sc ZecStorageClass) GetBurstEnable() bool {
+	return sc.burstEnable
+}
+
 func (sc *ZecStorageClass) setFsType(fs string) error {
 	if !IsValidFileSystemType(fs) {
 		return fmt.Errorf("unsupported filesystem type %s", fs)
@@ -179,6 +194,10 @@ func (sc *ZecStorageClass) SetZone(zone string) {
 
 func (sc *ZecStorageClass) SetPlaceGroupID(placeGroupID string) {
 	sc.placeGroupID = placeGroupID
+}
+
+func (sc *ZecStorageClass) SetBurstEnable(burstEnable bool) {
+	sc.burstEnable = burstEnable
 }
 
 func (sc ZecStorageClass) FormatVolumeSizeByte(sizeByte int64) int64 {

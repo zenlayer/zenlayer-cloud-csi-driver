@@ -29,6 +29,8 @@ import (
 )
 
 type IdentityServer struct {
+	csi.UnimplementedIdentityServer
+
 	driver *driver.DiskDriver
 	cloud  cloud.CloudManager
 }

@@ -37,7 +37,7 @@ type zecCloudManager struct {
 
 /*
 Action: Base request conf
-zenlayer sdk describe(v0.2.0):
+zenlayer sdk describe(v0.2.23):
 
 	type Config struct {
 		AutoRetry     bool `default:"false"`
@@ -83,7 +83,7 @@ func NewZecCloudManager(CLOUDAK string, CLOUDSK string, drivertype string) (*zec
 	}
 	var err error
 
-	config := common.NewConfig().WithTimeout(300).WithAutoRetry(false).WithMaxRetryTime(3)
+	config := common.NewConfig().WithTimeout(300)
 
 	cloud_secretKeyId := CLOUDAK
 	cloud_secretKeyPassword := CLOUDSK
@@ -103,22 +103,24 @@ Args:
 
 Return:
 
-zenlayer sdk describe(v0.2.0):
+zenlayer sdk describe(v0.2.23):
 
-	type DescribeDiskRegionsRequest struct {
-	    *common.BaseRequest
-	}
+		type DescribeDiskRegionsRequest struct {
+	    	*common.BaseRequest
+		}
 
-	type DescribeDiskRegionsResponseParams struct {
-		RequestId *string `json:"requestId,omitempty"`
-		RegionIds []string `json:"regionIds,omitempty"`
-	}
+		type DescribeDiskRegionsResponse struct {
+	    	*common.BaseResponse
+	    	RequestId *string `json:"requestId,omitempty"`
+	    	Response *DescribeDiskRegionsResponseParams `json:"response,omitempty"`
+		}
 
-	type DescribeDiskRegionsResponse struct {
-	    *common.BaseResponse
-	    RequestId *string `json:"requestId,omitempty"`
-	    Response *DescribeDiskRegionsResponseParams `json:"response,omitempty"`
-	}
+		// DescribeDiskRegionsResponseParams
+		type DescribeDiskRegionsResponseParams struct {
+	    	RequestId *string `json:"requestId,omitempty"`
+	    	// RegionIds 支持售卖云硬盘的节点ID列表。
+	    	RegionIds []string `json:"regionIds,omitempty"`
+		}
 */
 func (cm *zecCloudManager) Probe() error {
 	funcName := "zecCloudManager:Probe:"
@@ -178,39 +180,38 @@ Args: volName string, volSize int, volCategory string, zoneId string, resouceGro
 
 Return: volId string, err error
 
-zenlayer sdk describe(v0.2.0):
+zenlayer sdk describe(v0.2.23):
 
-	type CreateDisksRequest struct {
-	    *common.BaseRequest
-	    ZoneId *string `json:"zoneId,omitempty"`							// ZoneId 云硬盘所属的可用区ID。
-	    DiskName *string `json:"diskName,omitempty"`						// DiskName 云盘名称。范围1到64个字符。仅支持输入字母、数字、-/_和英文句点(.)。且必须以数字或字母开头和结尾。
-	    DiskSize *int `json:"diskSize,omitempty"`							// DiskSize 云硬盘大小，单位GiB。
-	    DiskAmount *int `json:"diskAmount,omitempty"`						// DiskAmount 需要创建的云硬盘的数量。
-	    InstanceId *string `json:"instanceId,omitempty"`					// InstanceId 云硬盘挂在的实例ID。
-	    ResourceGroupId *string `json:"resourceGroupId,omitempty"`			// ResourceGroupId 云硬盘所在的资源组ID。如不指定则放入默认资源组。
-	    DiskCategory *string `json:"diskCategory,omitempty"`				// DiskCategory 云硬盘种类。Basic NVMe SSD: 经济型 NVMe SSD。Standard NVMe SSD: 标准型 NVMe SSD。默认为Standard NVMe SSD。
-	    SnapshotId *string `json:"snapshotId,omitempty"`					// SnapshotId 使用快照ID进行创建。如果传入则根据此快照创建云硬盘，快照的云盘类型必须为数据盘快照。
-	    MarketingOptions *MarketingInfo `json:"marketingOptions,omitempty"`	// MarketingOptions 市场营销的相关选项。
-	}
+		type CreateDisksRequest struct {
+	    	*common.BaseRequest
+	    	ZoneId *string `json:"zoneId,omitempty"`					// ZoneId 云硬盘所属的可用区ID。
+	    	DiskName *string `json:"diskName,omitempty"`				// DiskName 云盘名称。// 范围1到64个字符。// 仅支持输入字母、数字、-/_和英文句点(.)。// 且必须以数字或字母开头和结尾。
+	    	DiskSize *int `json:"diskSize,omitempty"`					// DiskSize 云硬盘大小，单位GiB。
+	    	DiskAmount *int `json:"diskAmount,omitempty"`				// DiskAmount 需要创建的云硬盘的数量。
+	    	InstanceId *string `json:"instanceId,omitempty"`			// InstanceId 云硬盘挂载的实例ID。
+	    	ResourceGroupId *string `json:"resourceGroupId,omitempty"`	// ResourceGroupId 云硬盘所在的资源组ID。// 如不指定则放入默认资源组。
+	    	DiskCategory *string `json:"diskCategory,omitempty"`		// DiskCategory 云硬盘种类。 Basic NVMe SSD: 经济型 NVMe SSD。Standard NVMe SSD: 标准型 NVMe SSD。默认为Standard NVMe SSD。
+	    	SnapshotId *string `json:"snapshotId,omitempty"`			// SnapshotId 使用快照ID进行创建。// 如果传入则根据此快照创建云硬盘，快照的云盘类型必须为数据盘快照。
+	    	MarketingOptions *MarketingInfo `json:"marketingOptions,omitempty"`	// MarketingOptions 市场营销的相关选项。
+	    	Tags *TagAssociation `json:"tags,omitempty"`				// Tags 创建云硬盘时关联的标签。// 注意：·关联`标签键`不能重复。
+	    	InstanceIds []string `json:"instanceIds,omitempty"`			// InstanceIds 要绑定的实例ID。// 数量需要与`diskAmount`字段一致。
+	    	BurstingEnabled *bool `json:"burstingEnabled,omitempty"`	// BurstingEnabled 是否开启性能突发。
+		}
 
-	type MarketingInfo struct {
-		DiscountCode *string `json:"discountCode,omitempty"`				// DiscountCode 使用市场发放的折扣码。如果折扣码不存在，最终折扣将不会生效。
-		UsePocVoucher *bool `json:"usePocVoucher,omitempty"`				// UsePocVoucher 是否使用POC代金券。 如果系统不存在POC代金券，相关创建流程会失败。
-	}
+		type CreateDisksResponse struct {
+	    	*common.BaseResponse
+	    	RequestId *string `json:"requestId,omitempty"`
+	    	Response *CreateDisksResponseParams `json:"response,omitempty"`
+		}
 
-	type CreateDisksResponseParams struct {
-		RequestId *string `json:"requestId,omitempty"`
-		DiskIds []string `json:"diskIds,omitempty"`							// DiskIds 创建的云硬盘ID列表。
-		OrderNumber *string `json:"orderNumber,omitempty"`					// OrderNumber 本次创建对应的订单编号。
-	}
-
-	type CreateDisksResponse struct {
-	    *common.BaseResponse
-	    RequestId *string `json:"requestId,omitempty"`
-	    Response *CreateDisksResponseParams `json:"response,omitempty"`
-	}
+		// CreateDisksResponseParams
+		type CreateDisksResponseParams struct {
+	    	RequestId *string `json:"requestId,omitempty"`
+	    	DiskIds []string `json:"diskIds,omitempty"`					// DiskIds 创建的云硬盘ID列表。
+	    	OrderNumber *string `json:"orderNumber,omitempty"`			// OrderNumber 本次创建对应的订单编号。
+		}
 */
-func (cm *zecCloudManager) CreateVolume(volName string, volSize int, volCategory string, zoneId string, resouceGroupID string) (volId string, err error) {
+func (cm *zecCloudManager) CreateVolume(volName string, volSize int, volCategory string, zoneId string, resouceGroupID string, burstEnable bool) (volId string, err error) {
 
 	funcName := "zecCloudManager:CreateVolume:"
 	funcInfo, hash := csicommon.EntryFunction(funcName)
@@ -230,6 +231,7 @@ func (cm *zecCloudManager) CreateVolume(volName string, volSize int, volCategory
 	request.DiskAmount = &diskcount
 	request.ResourceGroupId = &resouceGroupID
 	request.DiskCategory = &volCategory
+	request.BurstingEnabled = &burstEnable
 
 	response, err := cm.zecClient.CreateDisks(request)
 	if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
@@ -254,7 +256,7 @@ func (cm *zecCloudManager) CreateVolume(volName string, volSize int, volCategory
 	return volId, nil
 }
 
-func (cm *zecCloudManager) CreateVolumeFromSnapshot(volName string, volSize int, volCategory string, zoneId string, resourceGroupID string, snapshotId string) (volId string, err error) {
+func (cm *zecCloudManager) CreateVolumeFromSnapshot(volName string, volSize int, volCategory string, zoneId string, resourceGroupID string, snapshotId string, burstEnable bool) (volId string, err error) {
 	funcName := "zecCloudManager:CreateVolumeFromSnapshot:"
 	funcInfo, hash := csicommon.EntryFunction(funcName)
 	klog.Info(funcInfo)
@@ -275,6 +277,7 @@ func (cm *zecCloudManager) CreateVolumeFromSnapshot(volName string, volSize int,
 	request.ResourceGroupId = &resourceGroupID
 	request.DiskCategory = &volCategory
 	request.SnapshotId = &snapshotId
+	request.BurstingEnabled = &burstEnable
 
 	response, err := cm.zecClient.CreateDisks(request)
 	if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
@@ -306,20 +309,21 @@ Args: volId
 
 Return: err error
 
-zenlayer sdk describe(v0.2.0):
+zenlayer sdk describe(v0.2.23):
 
-	type ReleaseDiskRequest struct {
-	    *common.BaseRequest
-	    DiskId *string `json:"diskId,omitempty"`
-	}
+		// ReleaseDiskRequest
+		type ReleaseDiskRequest struct {
+	    	*common.BaseRequest
+	    	DiskId *string `json:"diskId,omitempty"`	// DiskId 要删除的云硬盘ID。
+		}
 
-	type ReleaseDiskResponse struct {
-	    *common.BaseResponse
-	    RequestId *string `json:"requestId,omitempty"`
-	    Response struct {
-			RequestId string `json:"requestId,omitempty"`
-		} `json:"response,omitempty"`
-	}
+		type ReleaseDiskResponse struct {
+	    	*common.BaseResponse
+	    	RequestId *string `json:"requestId,omitempty"`
+	   		Response struct {
+				RequestId string `json:"requestId,omitempty"`
+			} `json:"response,omitempty"`
+		}
 */
 func (cm *zecCloudManager) DeleteVolume(volId string) (err error) {
 
@@ -366,21 +370,22 @@ Args: volId, vmid
 
 Return: err error
 
-zenlayer sdk describe(v0.2.0):
+zenlayer sdk describe(v0.2.23):
 
-	type AttachDisksRequest struct {
-	    *common.BaseRequest
-	    DiskIds []string `json:"diskIds,omitempty"`
-	    InstanceId *string `json:"instanceId,omitempty"`
-	}
+		// AttachDisksRequest
+		type AttachDisksRequest struct {
+	    	*common.BaseRequest
+	    	DiskIds []string `json:"diskIds,omitempty"`			// DiskIds 需要挂载的云硬盘ID列表。
+	    	InstanceId *string `json:"instanceId,omitempty"`	// InstanceId 被挂载的实例ID。
+		}
 
-	type AttachDisksResponse struct {
-	    *common.BaseResponse
-	    RequestId *string `json:"requestId,omitempty"`
-	    Response struct {
-			RequestId string `json:"requestId,omitempty"`
-		} `json:"response,omitempty"`
-	}
+		type AttachDisksResponse struct {
+	    	*common.BaseResponse
+	    	RequestId *string `json:"requestId,omitempty"`
+	    	Response struct {
+				RequestId string `json:"requestId,omitempty"`
+			} `json:"response,omitempty"`
+		}
 */
 func (cm *zecCloudManager) AttachVolume(volId string, vmId string) (err error) {
 
@@ -423,21 +428,26 @@ Args: volId
 
 Return: err error
 
-zenlayer sdk describe(v0.2.0):
+zenlayer sdk describe(v0.2.23):
 
-	type DetachDisksRequest struct {
-	    *common.BaseRequest
-	    DiskIds []string `json:"diskIds,omitempty"`
-	    InstanceCheckFlag *bool `json:"instanceCheckFlag,omitempty"`	// InstanceCheckFlag 是否检测实例的运行状态。 默认为true，即实例关机才允许被卸载。否则必须实例关机才能调用本接口。
-	}
+		// DetachDisksRequest
+		type DetachDisksRequest struct {
+	    	*common.BaseRequest
+	    	DiskIds []string `json:"diskIds,omitempty"`						// DiskIds 要卸载的云盘ID列表。
+	    	InstanceCheckFlag *bool `json:"instanceCheckFlag,omitempty"`	// InstanceCheckFlag 是否检测实例的运行状态。 // 默认为true，即实例关机才允许被卸载。// 否则必须实例关机才能调用本接口。
+		}
 
-	type DetachDisksResponse struct {
-	    *common.BaseResponse
-	    RequestId *string `json:"requestId,omitempty"`
-	    Response struct {
-			RequestId string `json:"requestId,omitempty"`
-		} `json:"response,omitempty"`
-	}
+		type DetachDisksResponse struct {
+	    	*common.BaseResponse
+	    	RequestId *string `json:"requestId,omitempty"`
+	    	Response *DetachDisksResponseParams `json:"response,omitempty"`
+		}
+
+		// DetachDisksResponseParams
+		type DetachDisksResponseParams struct {
+	    	RequestId *string `json:"requestId,omitempty"`
+	    	FailedDiskIds []string `json:"failedDiskIds,omitempty"`			// FailedDiskIds 解绑失败的云硬盘。
+		}
 */
 func (cm *zecCloudManager) DetachVolume(volId string) (err error) {
 
@@ -481,21 +491,21 @@ Args: volId, newSize
 
 Return: err error
 
-zenlayer sdk describe(v0.2.0):
+zenlayer sdk describe(v0.2.23):
 
-	type ResizeDiskRequest struct {
-	    *common.BaseRequest
-	    DiskId *string `json:"diskId,omitempty"`	// DiskId 云硬盘ID。通过DescribeDisks接口查询。
-	    DiskSize *int `json:"diskSize,omitempty"`	// DiskSize 云硬盘扩容后的大小。单位GiB。必须大于当前云硬盘大小。云盘最大限制为32768GB(32TB)。
-	}
+		type ResizeDiskRequest struct {
+	    	*common.BaseRequest
+	    	DiskId *string `json:"diskId,omitempty"`		// DiskId 云硬盘ID。// 通过DescribeDisks接口查询。
+	    	DiskSize *int `json:"diskSize,omitempty"`		// DiskSize 云硬盘扩容后的大小。// 单位GiB。 // 必须大于当前云硬盘大小。// 云盘最大限制为32768GB(32TB)。
+		}
 
-	type ResizeDiskResponse struct {
-	    *common.BaseResponse
-	    RequestId *string `json:"requestId,omitempty"`
-	    Response struct {
-			RequestId string `json:"requestId,omitempty"`
-		} `json:"response,omitempty"`
-	}
+		type ResizeDiskResponse struct {
+	    	*common.BaseResponse
+	    	RequestId *string `json:"requestId,omitempty"`
+	    	Response struct {
+				RequestId string `json:"requestId,omitempty"`
+			} `json:"response,omitempty"`
+		}
 */
 func (cm *zecCloudManager) ResizeVolume(volId string, requestSize int) error {
 
@@ -538,56 +548,67 @@ Args: volId
 
 Return: zecVolInfo *ZecVolume, err error
 
-zenlayer sdk describe(v0.2.0):
+zenlayer sdk describe(v0.2.23):
+
+// DescribeDisksRequest
 
 	type DescribeDisksRequest struct {
 	    *common.BaseRequest
-	    DiskIds []string `json:"diskIds,omitempty"`									// DiskIds 根据云盘ID列表筛选。
-	    DiskName *string `json:"diskName,omitempty"`								// DiskName 根据云盘名称筛选，该字段支持模糊搜索。
-	    DiskStatus *string `json:"diskStatus,omitempty"`							// DiskStatus 根据云盘的状态进行筛选。
-	    DiskType *string `json:"diskType,omitempty"`								// DiskType 根据云盘的类型进行筛选。
-	    DiskCategory *string `json:"diskCategory,omitempty"`	 					// DiskCategory 根据云盘的分类进行筛选。
-	    InstanceId *string `json:"instanceId,omitempty"`							// InstanceId 根据云盘挂载的实例ID进行筛选。
-	    ZoneId *string `json:"zoneId,omitempty"`									// ZoneId 根据云盘所在的可用区进行筛选。
-	    PageNum *int `json:"pageNum,omitempty"`										// PageNum 返回的分页大小。默认为20，最大为1000。
-	    PageSize *int `json:"pageSize,omitempty"`	 								// PageSize 返回的分页数。默认为1。
-	    RegionId *string `json:"regionId,omitempty"`								// RegionId 根据云盘所在的节点ID进行筛选。
-	    SnapshotAbility *bool `json:"snapshotAbility,omitempty"`					// SnapshotAbility 根据云盘是否有快照能力进行筛选。
-	    ResourceGroupId *string `json:"resourceGroupId,omitempty"`					// ResourceGroupId 根据快照所属的资源组进行筛选。
-	}
+	    DiskIds []string `json:"diskIds,omitempty"`						 // DiskIds 根据云盘ID列表筛选。
+	    DiskName *string `json:"diskName,omitempty"`					// DiskName 根据云盘名称筛选，该字段支持模糊搜索。
+	    DiskStatus *string `json:"diskStatus,omitempty"`				// DiskStatus 根据云盘的状态进行筛选。
+	    DiskType *string `json:"diskType,omitempty"`					// DiskType 根据云盘的类型进行筛选。
+	    DiskCategory *string `json:"diskCategory,omitempty"`			// DiskCategory 根据云盘的分类进行筛选。
+	    InstanceId *string `json:"instanceId,omitempty"`				// InstanceId 根据云盘挂载的实例ID进行筛选。
+	    ZoneId *string `json:"zoneId,omitempty"`						// ZoneId 根据云盘所在的可用区进行筛选。
+	    PageNum *int `json:"pageNum,omitempty"`							// PageNum 返回的分页大小。// 默认为20，最大为1000。
+	    PageSize *int `json:"pageSize,omitempty"`						// PageSize 返回的分页数。
+	    RegionId *string `json:"regionId,omitempty"`					// RegionId 根据云盘所在的节点ID进行筛选。
+	    SnapshotAbility *bool `json:"snapshotAbility,omitempty"`		// SnapshotAbility 根据云盘是否有快照能力进行筛选。
+	    ResourceGroupId *string `json:"resourceGroupId,omitempty"`		// ResourceGroupId 根据快照所属的资源组进行筛选。
+	    TagKeys []string `json:"tagKeys,omitempty"`						// TagKeys 根据标签键进行搜索。// 最长不得超过20个标签键。
+	    Tags []*Tag `json:"tags,omitempty"`								// Tags 根据标签进行搜索。 // 最长不得超过20个标签。
 
-	type DescribeDisksResponseParams struct {
-		RequestId *string `json:"requestId,omitempty"`
-		TotalCount *int64 `json:"totalCount,omitempty"`								// TotalCount 符合条件的数据总数。
-		DataSet []*DiskInfo `json:"dataSet,omitempty"`								// DataSet 云盘的结果集。
-	}
-
-	type DiskInfo struct {
-		DiskId *string `json:"diskId,omitempty"`									// DiskId 云盘的 ID。
-		DiskName *string `json:"diskName,omitempty"`								// DiskName 云盘的名称。
-		RegionId *string `json:"regionId,omitempty"`								// RegionId 云盘所在的节点ID。
-		ZoneId *string `json:"zoneId,omitempty"`									// ZoneId 云盘所在节点的可用区ID。
-		DiskType *string `json:"diskType,omitempty"`								// DiskType 云盘的类型。
-		Portable *bool `json:"portable,omitempty"`									// Portable 是否可卸载。
-		DiskCategory *string `json:"diskCategory,omitempty"`						// DiskCategory 云盘的类别。
-		DiskSize *int `json:"diskSize,omitempty"`									// DiskSize 云盘的大小。单位：GiB。
-		DiskStatus *string `json:"diskStatus,omitempty"`							// DiskStatus 云盘的状态。
-		InstanceId *string `json:"instanceId,omitempty"`							// InstanceId 云盘绑定实例的ID。
-		InstanceName *string `json:"instanceName,omitempty"`						// InstanceName 云盘绑定实例的名称。
-		CreateTime *string `json:"createTime,omitempty"`							// CreateTime 创建时间。
-		ExpiredTime *string `json:"expiredTime,omitempty"`							// ExpiredTime 到期时间。
-		Period *int `json:"period,omitempty"`										// Period 周期。
-		ResourceGroupId *string `json:"resourceGroupId,omitempty"`					// ResourceGroupId 云盘所属的资源组ID。
-		ResourceGroupName *string `json:"resourceGroupName,omitempty"`				// ResourceGroupName 云盘所属的资源组名称。
-		Serial *string `json:"serial,omitempty"`									// Serial 云盘序号。可能为null，表示取不到值。
-		SnapshotAbility *bool `json:"snapshotAbility,omitempty"`					// SnapshotAbility 是否具体快照能力。
-		AutoSnapshotPolicyId *string `json:"autoSnapshotPolicyId,omitempty"`		// AutoSnapshotPolicyId 云盘关联的自动快照策略ID。
-	}
+}
 
 	type DescribeDisksResponse struct {
 	    *common.BaseResponse
 	    RequestId *string `json:"requestId,omitempty"`
 	    Response *DescribeDisksResponseParams `json:"response,omitempty"`
+	}
+
+// DescribeDisksResponseParams
+
+	type DescribeDisksResponseParams struct {
+	    RequestId *string `json:"requestId,omitempty"`
+	    TotalCount *int64 `json:"totalCount,omitempty"`			// TotalCount 符合条件的数据总数。
+	    DataSet []*DiskInfo `json:"dataSet,omitempty"`			// DataSet 云盘的结果集。
+	}
+
+// DiskInfo 描述云盘的基本信息。
+
+	type DiskInfo struct {
+	    DiskId *string `json:"diskId,omitempty"`				// DiskId 云盘的 ID。
+	    DiskName *string `json:"diskName,omitempty"`			// DiskName 云盘的名称。
+	    RegionId *string `json:"regionId,omitempty"`			// RegionId 云盘所在的节点ID。
+	    ZoneId *string `json:"zoneId,omitempty"`				// ZoneId 云盘所在节点的可用区ID。
+	    DiskType *string `json:"diskType,omitempty"`			// DiskType 云盘的类型。
+	    Portable *bool `json:"portable,omitempty"`				// Portable 是否可卸载。
+	    DiskCategory *string `json:"diskCategory,omitempty"`	// DiskCategory 云盘的类别。
+	    DiskSize *int `json:"diskSize,omitempty"`				// DiskSize 云盘的大小。// 单位：GiB。
+	    DiskStatus *string `json:"diskStatus,omitempty"`		// DiskStatus 云盘的状态。
+	    InstanceId *string `json:"instanceId,omitempty"`		// InstanceId 云盘绑定实例的ID。
+	    InstanceName *string `json:"instanceName,omitempty"`	// InstanceName 云盘绑定实例的名称。
+	    CreateTime *string `json:"createTime,omitempty"`		// CreateTime 创建时间。
+	    ExpiredTime *string `json:"expiredTime,omitempty"`		// ExpiredTime 到期时间。
+	    Period *int `json:"period,omitempty"`					// Period 周期。
+	    ResourceGroupId *string `json:"resourceGroupId,omitempty"`			// ResourceGroupId 云盘所属的资源组ID。
+	    ResourceGroupName *string `json:"resourceGroupName,omitempty"`		// ResourceGroupName 云盘所属的资源组名称。
+	    Serial *string `json:"serial,omitempty"`							// Serial 云盘序号。// 可能为null，表示取不到值。
+	    SnapshotAbility *bool `json:"snapshotAbility,omitempty"`			// SnapshotAbility 是否具体快照能力。
+	    AutoSnapshotPolicyId *string `json:"autoSnapshotPolicyId,omitempty"`// AutoSnapshotPolicyId 云盘关联的自动快照策略ID。
+	    Tags *Tags `json:"tags,omitempty"`									// Tags 该云盘关联的标签。
+	    BurstingEnabled *bool `json:"burstingEnabled,omitempty"`			// BurstingEnabled 是否开启 Burst。
 	}
 */
 func (cm *zecCloudManager) FindVolume(volId string) (*ZecVolume, error) {
@@ -818,62 +839,74 @@ Args: vmid
 
 Return: zecVmInfo *ZecVm, err error
 
-zenlayer sdk describe(v0.2.0):
+zenlayer sdk describe(v0.2.23):
+
+// DescribeInstancesRequest
 
 	type DescribeInstancesRequest struct {
 	    *common.BaseRequest
-	    InstanceIds []string `json:"instanceIds,omitempty"`										// InstanceIds 根据实例ID列表进行筛选。最大不能超过100个。
-	    ZoneId *string `json:"zoneId,omitempty"`	 											// ZoneId 实例所属的可用区ID。
-	    ImageId *string `json:"imageId,omitempty"`	 											// ImageId 镜像ID。
-	    Ipv4Address *string `json:"ipv4Address,omitempty"`										// Ipv4Address 根据实例关联的IPv4过滤。
-	    Ipv6Address *string `json:"ipv6Address,omitempty"`										// Ipv6Address 根据实例关联的IPv6信息过滤。
-	    Status *string `json:"status,omitempty"`												// Status 根据实例的状态过滤。
-	    Name *string `json:"name,omitempty"`													// Name 根据实例显示名称过滤。该字段支持模糊搜索。
-	    PageSize *int `json:"pageSize,omitempty"`												// PageSize 返回的分页大小。
-	    PageNum *int `json:"pageNum,omitempty"`	 												// PageNum 返回的分页数。
-	    ResourceGroupId *string `json:"resourceGroupId,omitempty"`								// ResourceGroupId 根据资源组ID过滤。
+	    InstanceIds []string `json:"instanceIds,omitempty"`							// InstanceIds 根据实例ID列表进行筛选。// 最大不能超过100个。
+	    ZoneId *string `json:"zoneId,omitempty"`									// ZoneId 实例所属的可用区ID。
+	    ImageId *string `json:"imageId,omitempty"`									// ImageId 镜像ID。
+	    Ipv4Address *string `json:"ipv4Address,omitempty"`							// Ipv4Address 根据实例关联的IPv4过滤。
+	    Ipv6Address *string `json:"ipv6Address,omitempty"`							// Ipv6Address 根据实例关联的IPv6信息过滤。
+	    Status *string `json:"status,omitempty"`									// Status 根据实例的状态过滤。
+	    Name *string `json:"name,omitempty"`										// Name 根据实例显示名称过滤。// 该字段支持模糊搜索。
+	    PageSize *int `json:"pageSize,omitempty"`									// PageSize 返回的分页大小。
+	    PageNum *int `json:"pageNum,omitempty"`										// PageNum 返回的分页数。
+	    ResourceGroupId *string `json:"resourceGroupId,omitempty"`					// ResourceGroupId 根据资源组ID过滤。
+	    TagKeys []string `json:"tagKeys,omitempty"`									// TagKeys 根据标签键进行搜索。// 最长不得超过20个标签键。
+	    Tags []*Tag `json:"tags,omitempty"`											// Tags 根据标签进行搜索。// 最长不得超过20个标签。
+
+}
+
+	type DescribeInstancesResponse struct {
+	    *common.BaseResponse
+	    RequestId *string `json:"requestId,omitempty"`
+	    Response *DescribeInstancesResponseParams `json:"response,omitempty"`
 	}
+
+// DescribeInstancesResponseParams
 
 	type DescribeInstancesResponseParams struct {
-		RequestId *string `json:"requestId,omitempty"`
-		TotalCount *int `json:"totalCount,omitempty"`											// TotalCount 符合条件的数据总数。
-		DataSet []*InstanceInfo `json:"dataSet,omitempty"`										// DataSet 实例列表的数据。
+	    RequestId *string `json:"requestId,omitempty"`
+	    TotalCount *int `json:"totalCount,omitempty"`								// TotalCount 符合条件的数据总数。
+	    DataSet []*InstanceInfo `json:"dataSet,omitempty"`							// DataSet 实例列表的数据。
 	}
 
-		type InstanceInfo struct {
-			InstanceId *string `json:"instanceId,omitempty"`									// InstanceId 实例唯一ID。
-			InstanceName *string `json:"instanceName,omitempty"`								// InstanceName 实例显示名称。
-			ZoneId *string `json:"zoneId,omitempty"`											// ZoneId 实例所属的可用区ID。
-			InstanceType *string `json:"instanceType,omitempty"`								// InstanceType CPU 规格。如果是GPU实例，该字段取值为null。
-			Cpu *int `json:"cpu,omitempty"`														// Cpu CPU 核数。单位：个。
-			Memory *int `json:"memory,omitempty"`												// Memory 内存容量。单位：GiB。
-			ImageId *string `json:"imageId,omitempty"`											// ImageId 镜像ID。
-			ImageName *string `json:"imageName,omitempty"`										// ImageName 镜像名称。
-			TimeZone *string `json:"timeZone,omitempty"`										// TimeZone 设置的系统时区信息。
-			NicNetworkType *string `json:"nicNetworkType,omitempty"`							// NicNetworkType 网卡模式。
-			Status *string `json:"status,omitempty"`											// Status 实例状态。
-			SystemDisk *SystemDisk `json:"systemDisk,omitempty"`								// SystemDisk 系统盘信息。
-			DataDisks []*DataDisk `json:"dataDisks,omitempty"`									// DataDisks 实例上挂在的数据盘信息。
-			PublicIpAddresses []string `json:"publicIpAddresses,omitempty"`						// PublicIpAddresses 实例上公网IPv4列表。
-			PrivateIpAddresses []string `json:"privateIpAddresses,omitempty"`					// PrivateIpAddresses 实例上内网IP列表。
-			KeyId *string `json:"keyId,omitempty"`												// KeyId 安装的SSH密钥ID。
-			SubnetId *string `json:"subnetId,omitempty"`										// SubnetId 实例主网卡关联的子网ID。
-			SecurityGroupId *string `json:"securityGroupId,omitempty"`							// SecurityGroupId 实例主网卡关联的安全组ID。
-			EnableAgent *bool `json:"enableAgent,omitempty"`									// EnableAgent 是否开启QGA Agent。
-			EnableAgentMonitor *bool `json:"enableAgentMonitor,omitempty"`						// EnableAgentMonitor 是否开启QGA 监控采集。
-			EnableIpForward *bool `json:"enableIpForward,omitempty"`							// EnableIpForward 是否开启IP转发。
-			CreateTime *string `json:"createTime,omitempty"`									// CreateTime 创建时间。
-			ExpiredTime *string `json:"expiredTime,omitempty"`									// ExpiredTime 到期时间。
-			ResourceGroupId *string `json:"resourceGroupId,omitempty"`							// ResourceGroupId 实例所属的资源组ID。
-			ResourceGroupName *string `json:"resourceGroupName,omitempty"`						// ResourceGroupName 实例所属的资源组名称。
-			Nics []*NicInfo `json:"nics,omitempty"`												// Nics 实例上绑定的网卡信息。
-		}
+// InstanceInfo 描述虚拟机实例的信息。包括规格，状态，网卡等。
 
-		type DescribeInstancesResponse struct {
-		    *common.BaseResponse
-		    RequestId *string `json:"requestId,omitempty"`
-		    Response *DescribeInstancesResponseParams `json:"response,omitempty"`
-		}
+	type InstanceInfo struct {
+	    InstanceId *string `json:"instanceId,omitempty"`							// InstanceId 实例唯一ID。
+	    InstanceName *string `json:"instanceName,omitempty"`						// InstanceName 实例显示名称。
+	    ZoneId *string `json:"zoneId,omitempty"`									// ZoneId 实例所属的可用区ID。
+	    InstanceType *string `json:"instanceType,omitempty"`						// InstanceType CPU 规格。// 如果是GPU实例，该字段取值为null。
+	    Cpu *int `json:"cpu,omitempty"`												// Cpu CPU 核数。// 单位：个。
+	    Memory *int `json:"memory,omitempty"`										// Memory 内存容量。// 单位：GiB。
+	    ImageId *string `json:"imageId,omitempty"`									// ImageId 镜像ID。
+	    ImageName *string `json:"imageName,omitempty"`								// ImageName 镜像名称。
+	    TimeZone *string `json:"timeZone,omitempty"`								// TimeZone 设置的系统时区信息。
+	    NicNetworkType *string `json:"nicNetworkType,omitempty"`					// NicNetworkType 网卡模式。
+	    Status *string `json:"status,omitempty"`									// Status 实例状态。
+	    SystemDisk *SystemDisk `json:"systemDisk,omitempty"`						// SystemDisk 系统盘信息。
+	    DataDisks []*DataDisk `json:"dataDisks,omitempty"`							// DataDisks 实例上挂载的数据盘信息。
+	    PublicIpAddresses []string `json:"publicIpAddresses,omitempty"`				// PublicIpAddresses 实例上公网IPv4列表。
+	    PrivateIpAddresses []string `json:"privateIpAddresses,omitempty"`			// PrivateIpAddresses 实例上内网IP列表。
+	    KeyId *string `json:"keyId,omitempty"`										// KeyId 安装的SSH密钥ID。
+	    SubnetId *string `json:"subnetId,omitempty"`								// SubnetId 实例主网卡关联的子网ID。
+	    SecurityGroupId *string `json:"securityGroupId,omitempty"`					// SecurityGroupId 实例主网卡关联的安全组ID。
+	    EnableAgent *bool `json:"enableAgent,omitempty"`							// EnableAgent 是否开启QGA Agent。
+	    EnableAgentMonitor *bool `json:"enableAgentMonitor,omitempty"`				// EnableAgentMonitor 是否开启QGA 监控采集。
+	    EnableIpForward *bool `json:"enableIpForward,omitempty"`					// EnableIpForward 是否开启IP转发。
+	    CreateTime *string `json:"createTime,omitempty"`							// CreateTime 创建时间。
+	    ExpiredTime *string `json:"expiredTime,omitempty"`							// ExpiredTime 到期时间。
+	    ResourceGroupId *string `json:"resourceGroupId,omitempty"`					// ResourceGroupId 实例所属的资源组ID。
+	    ResourceGroupName *string `json:"resourceGroupName,omitempty"`				// ResourceGroupName 实例所属的资源组名称。
+	    Nics []*NicInfo `json:"nics,omitempty"`										// Nics 实例上绑定的网卡信息。
+	    Tags *Tags `json:"tags,omitempty"`											// Tags 实例关联的标签。
+	    LoadBalancerIds []string `json:"loadBalancerIds,omitempty"`					// LoadBalancerIds 实例上绑定的负载均衡ID列表。
+	    InstanceOptions *InstanceOptions `json:"instanceOptions,omitempty"`			// InstanceOptions 实例选项配置。
+	}
 */
 func (cm *zecCloudManager) FindInstance(vmid string) (*ZecVm, error) {
 
@@ -937,29 +970,35 @@ Args: zoneid
 
 Return: error
 
-zenlayer sdk describe(v0.2.0):
+zenlayer sdk describe(v0.2.23):
+
+// DescribeZonesRequest
 
 	type DescribeZonesRequest struct {
 	    *common.BaseRequest
-	    ZoneIds []string `json:"zoneIds,omitempty"`							// ZoneIds 根据可用区ID过滤。
-	}
-
-	type DescribeZonesResponseParams struct {
-		RequestId *string `json:"requestId,omitempty"`
-		ZoneSet []*ZoneInfo `json:"zoneSet,omitempty"`						// ZoneSet 可用区列表。
-	}
-
-	type ZoneInfo struct {
-		ZoneId *string `json:"zoneId,omitempty"`							// ZoneId 可用区ID。
-		RegionId *string `json:"regionId,omitempty"`						// RegionId 可用区所在的节点ID。
-		ZoneName *string `json:"zoneName,omitempty"`						// ZoneName 可用区名称。
-		SupportSecurityGroup *bool `json:"supportSecurityGroup,omitempty"`	// SupportSecurityGroup 可用区是否支持安全组。该字段已废弃，当前所有节点均支持安全组。
+	    ZoneIds []string `json:"zoneIds,omitempty"`								// ZoneIds 根据可用区ID过滤。
 	}
 
 	type DescribeZonesResponse struct {
 	    *common.BaseResponse
 	    RequestId *string `json:"requestId,omitempty"`
 	    Response *DescribeZonesResponseParams `json:"response,omitempty"`
+	}
+
+// DescribeZonesResponseParams
+
+	type DescribeZonesResponseParams struct {
+	    RequestId *string `json:"requestId,omitempty"`
+	    ZoneSet []*ZoneInfo `json:"zoneSet,omitempty"`							// ZoneSet 可用区列表。
+	}
+
+// ZoneInfo 可用区的基本信息。
+
+	type ZoneInfo struct {
+	    ZoneId *string `json:"zoneId,omitempty"`								// ZoneId 可用区ID。
+	    RegionId *string `json:"regionId,omitempty"`							// RegionId 可用区所在的节点ID。
+	    ZoneName *string `json:"zoneName,omitempty"`							// ZoneName 可用区名称。
+	    SupportSecurityGroup *bool `json:"supportSecurityGroup,omitempty"`		// Deprecated: SupportSecurityGroup 已废弃，请不要使用。// SupportSecurityGroup 可用区是否支持安全组。// 该字段已废弃，当前所有节点均支持安全组。
 	}
 */
 func (cm *zecCloudManager) GetZone(zoneId string) error {
@@ -993,7 +1032,9 @@ Args: vmid(string)
 
 Return: error
 
-zenlayer sdk describe(v0.2.0):
+zenlayer sdk describe(v0.2.23):
+
+// DescribeInstancesStatusRequest
 
 	type DescribeInstancesStatusRequest struct {
 	    *common.BaseRequest
@@ -1003,21 +1044,25 @@ zenlayer sdk describe(v0.2.0):
 	    ResourceGroupId *string `json:"resourceGroupId,omitempty"`				// ResourceGroupId 根据资源组ID过滤。
 	}
 
-	type DescribeInstancesStatusResponseParams struct {
-		RequestId *string `json:"requestId,omitempty"`
-		TotalCount *int `json:"totalCount,omitempty"`							// TotalCount 符合条件的数据总数。
-		DataSet []*InstanceStatus `json:"dataSet,omitempty"`					// DataSet 实例状态数据。
-	}
-
-	type InstanceStatus struct {
-		InstanceId *string `json:"instanceId,omitempty"`						// InstanceId 实例的ID。
-		InstanceStatus *string `json:"instanceStatus,omitempty"`				// InstanceStatus 实例的状态。
-	}
-
 	type DescribeInstancesStatusResponse struct {
 	    *common.BaseResponse
 	    RequestId *string `json:"requestId,omitempty"`
 	    Response *DescribeInstancesStatusResponseParams `json:"response,omitempty"`
+	}
+
+// DescribeInstancesStatusResponseParams
+
+	type DescribeInstancesStatusResponseParams struct {
+	    RequestId *string `json:"requestId,omitempty"`
+	    TotalCount *int `json:"totalCount,omitempty"`							// TotalCount 符合条件的数据总数。
+	    DataSet []*InstanceStatus `json:"dataSet,omitempty"`					// DataSet 实例状态数据。
+	}
+
+// InstanceStatus 描述实例状态的信息。
+
+	type InstanceStatus struct {
+	    InstanceId *string `json:"instanceId,omitempty"`						// InstanceId 实例的ID。
+	    InstanceStatus *string `json:"instanceStatus,omitempty"`				// InstanceStatus 实例的状态。
 	}
 */
 func (cm *zecCloudManager) GetVmStatus(vmId string) (exist bool, status string, err error) {
@@ -1070,24 +1115,28 @@ Args:	snapshotname, resource vol id
 
 Return:	snapshot Id
 
-zenlayer sdk describe(v0.2.0):
+zenlayer sdk describe(v0.2.23):
+
+// CreateSnapshotRequest
 
 	type CreateSnapshotRequest struct {
 	    *common.BaseRequest
-	    DiskId *string `json:"diskId,omitempty"`							// DiskId 云硬盘ID。
-	    SnapshotName *string `json:"snapshotName,omitempty"`				// SnapshotName 快照名称。
-	    RetentionTime *string `json:"retentionTime,omitempty"`				// RetentionTime 保留的到期时间。格式为：yyyy-MM-ddTHH:mm:ssZ如果不传，则代表永久保留。指定时间必须在当前时间24小时后。
-	}
-
-	type CreateSnapshotResponseParams struct {
-		RequestId *string `json:"requestId,omitempty"`
-		SnapshotId *string `json:"snapshotId,omitempty"`					// SnapshotId 创建的快照ID。
+	    DiskId *string `json:"diskId,omitempty"`								// DiskId 云硬盘ID。
+	    SnapshotName *string `json:"snapshotName,omitempty"`					// SnapshotName 快照名称。
+	    RetentionTime *string `json:"retentionTime,omitempty"`					// RetentionTime 保留的到期时间。// 格式为：yyyy-MM-ddTHH:mm:ssZ。// 如果不传，则代表永久保留。// 指定时间必须在当前时间24小时后。
 	}
 
 	type CreateSnapshotResponse struct {
 	    *common.BaseResponse
 	    RequestId *string `json:"requestId,omitempty"`
 	    Response *CreateSnapshotResponseParams `json:"response,omitempty"`
+	}
+
+// CreateSnapshotResponseParams
+
+	type CreateSnapshotResponseParams struct {
+	    RequestId *string `json:"requestId,omitempty"`
+	    SnapshotId *string `json:"snapshotId,omitempty"`						// SnapshotId 创建的快照ID。
 	}
 */
 func (cm *zecCloudManager) CreateSnapshot(snapshotName string, resourceId string) (snapshotId string, err error) {
@@ -1138,22 +1187,24 @@ Args: snapshot Id
 
 Return:
 
-zenlayer sdk describe(v0.2.0):
+zenlayer sdk describe(v0.2.23):
 
 	type DeleteSnapshotsRequest struct {
 	    *common.BaseRequest
-	    SnapshotIds []string `json:"snapshotIds,omitempty"`					// SnapshotIds 快照ID列表。
-	}
-
-	type DeleteSnapshotsResponseParams struct {
-		RequestId *string `json:"requestId,omitempty"`
-		SnapshotIds []string `json:"snapshotIds,omitempty"`					// SnapshotIds 操作失败的快照ID。
+	    SnapshotIds []string `json:"snapshotIds,omitempty"`						// SnapshotIds 快照ID列表。
 	}
 
 	type DeleteSnapshotsResponse struct {
 	    *common.BaseResponse
 	    RequestId *string `json:"requestId,omitempty"`
 	    Response *DeleteSnapshotsResponseParams `json:"response,omitempty"`
+	}
+
+// DeleteSnapshotsResponseParams
+
+	type DeleteSnapshotsResponseParams struct {
+	    RequestId *string `json:"requestId,omitempty"`
+	    SnapshotIds []string `json:"snapshotIds,omitempty"`						// SnapshotIds 操作失败的快照ID。
 	}
 */
 func (cm *zecCloudManager) DeleteSnapshot(snapshotId string) (err error) {
@@ -1206,51 +1257,52 @@ Args:
 
 Return:
 
-zenlayer sdk describe(v0.2.0):
+zenlayer sdk describe(v0.2.23):
 
-		type DescribeSnapshotsRequest struct {
-		    *common.BaseRequest
-		    SnapshotIds []string `json:"snapshotIds,omitempty"`						// SnapshotIds 根据快照ID列表进行过滤。
-		    ZoneId *string `json:"zoneId,omitempty"`								// ZoneId 快照所属的可用区ID。
-		    Status *string `json:"status,omitempty"`								// Status 根据快照的状态过滤。
-		    DiskIds []string `json:"diskIds,omitempty"`								// DiskIds 按照快照所属的Disk ID列表 过滤。
-		    DiskType *string `json:"diskType,omitempty"`							// DiskType 根据快照的云盘类型过滤。
-		    SnapshotType *string `json:"snapshotType,omitempty"`					// SnapshotType 根据快照类型过滤。
-		    SnapshotName *string `json:"snapshotName,omitempty"`					// SnapshotName 根据快照显示名称过滤。该字段支持模糊搜索。
-		    PageSize *int `json:"pageSize,omitempty"`								// PageSize 返回的分页大小。
-		    PageNum *int `json:"pageNum,omitempty"`									// PageNum 返回的分页数。
-		    ResourceGroupId *string `json:"resourceGroupId,omitempty"`				// ResourceGroupId 根据资源组ID过滤。
-		}
+// DescribeSnapshotsRequest
 
-		type DescribeSnapshotsResponseParams struct {
-			RequestId *string `json:"requestId,omitempty"`
-			TotalCount *int `json:"totalCount,omitempty"`							// TotalCount 满足过滤条件的快照总数。
-			DataSet []*SnapshotInfo `json:"dataSet,omitempty"`						// DataSet 返回的快照列表数据。
-		}
+	type DescribeSnapshotsRequest struct {
+	    *common.BaseRequest
+	    SnapshotIds []string `json:"snapshotIds,omitempty"`											// SnapshotIds 根据快照ID列表进行过滤。
+	    ZoneId *string `json:"zoneId,omitempty"`													// ZoneId 快照所属的可用区ID。
+	    Status *string `json:"status,omitempty"`													// Status 根据快照的状态过滤。
+	    DiskIds []string `json:"diskIds,omitempty"`													// DiskIds 按照快照所属的Disk ID列表 过滤。
+	    DiskType *string `json:"diskType,omitempty"`												// DiskType 根据快照的云盘类型过滤。
+	    SnapshotType *string `json:"snapshotType,omitempty"`										// SnapshotType 根据快照类型过滤。
+	    SnapshotName *string `json:"snapshotName,omitempty"`										// SnapshotName 根据快照显示名称过滤。// 该字段支持模糊搜索。
+	    PageSize *int `json:"pageSize,omitempty"`													// PageSize 返回的分页大小。
+	    PageNum *int `json:"pageNum,omitempty"`														// PageNum 返回的分页数。
+	    ResourceGroupId *string `json:"resourceGroupId,omitempty"`									// ResourceGroupId 根据资源组ID过滤。
+	}
 
-		type SnapshotInfo struct {
-			SnapshotId *string `json:"snapshotId,omitempty"`						// SnapshotId 快照唯一ID。
-			SnapshotName *string `json:"snapshotName,omitempty"`					// SnapshotName 快照显示名称。
-			ZoneId *string `json:"zoneId,omitempty"`								// ZoneId 快照所属的可用区ID。
-			Status *string `json:"status,omitempty"`								// Status 快照的状态。
-			SnapshotType *string `json:"snapshotType,omitempty"`					// SnapshotType 快照的类型。
-			RetentionTime *string `json:"retentionTime,omitempty"`					// RetentionTime 快照的保留到期时间。如果取不到值，说明快照为永久保留。
-			DiskId *string `json:"diskId,omitempty"`								// DiskId 云盘ID。
-			CreateTime *string `json:"createTime,omitempty"`						// CreateTime 创建时间。RFC3339
-			DiskAbility *bool `json:"diskAbility,omitempty"`						// DiskAbility 是否具备创建disk的能力。
-			ResourceGroup *ResourceGroupInfo `json:"resourceGroup,omitempty"`		// ResourceGroup 所属的资源组信息。
-		}
+	type DescribeSnapshotsResponse struct {
+	    *common.BaseResponse
+	    RequestId *string `json:"requestId,omitempty"`
+	    Response *DescribeSnapshotsResponseParams `json:"response,omitempty"`
+	}
 
-		type ResourceGroupInfo struct {
-	    	ResourceGroupId *string `json:"resourceGroupId,omitempty"`				// ResourceGroupId 资源组ID。
-	    	ResourceGroupName *string `json:"resourceGroupName,omitempty"`			// ResourceGroupName 资源组名称。
-		}
+// DescribeSnapshotsResponseParams
 
-		type DescribeSnapshotsResponse struct {
-		    *common.BaseResponse
-		    RequestId *string `json:"requestId,omitempty"`
-		    Response *DescribeSnapshotsResponseParams `json:"response,omitempty"`
-		}
+	type DescribeSnapshotsResponseParams struct {
+	    RequestId *string `json:"requestId,omitempty"`
+	    TotalCount *int `json:"totalCount,omitempty"`												// TotalCount 满足过滤条件的快照总数。
+	    DataSet []*SnapshotInfo `json:"dataSet,omitempty"`											// DataSet 返回的快照列表数据。
+	}
+
+// SnapshotInfo 描述快照的信息。
+
+	type SnapshotInfo struct {
+	    SnapshotId *string `json:"snapshotId,omitempty"`											// SnapshotId 快照唯一ID。
+	    SnapshotName *string `json:"snapshotName,omitempty"`										// SnapshotName 快照显示名称。
+	    ZoneId *string `json:"zoneId,omitempty"`													// ZoneId 快照所属的可用区ID。
+	    Status *string `json:"status,omitempty"`													// Status 快照的状态。
+	    SnapshotType *string `json:"snapshotType,omitempty"`										// SnapshotType 快照的类型。
+	    RetentionTime *string `json:"retentionTime,omitempty"`										// RetentionTime 快照的保留到期时间。// 如果取不到值，说明快照为永久保留。
+	    DiskId *string `json:"diskId,omitempty"`													// DiskId 云盘ID。
+	    CreateTime *string `json:"createTime,omitempty"`											// CreateTime 创建时间。
+	    DiskAbility *bool `json:"diskAbility,omitempty"`											// DiskAbility 是否具备创建disk的能力。
+	    ResourceGroup *ResourceGroupInfo `json:"resourceGroup,omitempty"`							// ResourceGroup 所属的资源组信息。
+	}
 */
 func (cm *zecCloudManager) FindSnapshot(snapshotId string) (*ZecVolumeSnap, error) {
 	funcName := "zecCloudManager:FindSnapshot:"
@@ -1495,7 +1547,7 @@ func (cm *zecCloudManager) waitDiskStatus(status string, volId string) (err erro
 			if *response.Response.DataSet[0].DiskStatus == DiskStatusAvailable {
 				return true, nil
 			} else {
-				klog.Infof("%s Wait Avaliable 3 sec again.VolId[%s]", INFOLOG, volId)
+				klog.Infof("%s Wait Disk Available 3 sec again.VolId[%s]", INFOLOG, volId)
 				return false, nil
 			}
 		}
@@ -1522,7 +1574,7 @@ func (cm *zecCloudManager) waitDiskStatus(status string, volId string) (err erro
 			if *response.Response.TotalCount == 0 {
 				return true, nil
 			} else {
-				klog.Infof("%s Wait Deleted 3 sec again.VolId[%s]", INFOLOG, volId)
+				klog.Infof("%s Wait Disk Deleted 3 sec again.VolId[%s]", INFOLOG, volId)
 				return false, nil
 			}
 		}
@@ -1554,7 +1606,7 @@ func (cm *zecCloudManager) waitDiskStatus(status string, volId string) (err erro
 			if *response.Response.DataSet[0].DiskStatus == DiskStatusInUse {
 				return true, nil
 			} else {
-				klog.Infof("%s Wait In_use 3 sec again.VolId[%s]", INFOLOG, volId)
+				klog.Infof("%s Wait Disk In_use 3 sec again.VolId[%s]", INFOLOG, volId)
 				return false, nil
 			}
 		}
@@ -1585,7 +1637,7 @@ func (cm *zecCloudManager) waitDiskStatus(status string, volId string) (err erro
 			if *response.Response.DataSet[0].DiskStatus == DiskStatusAvailable || *response.Response.DataSet[0].DiskStatus == DiskStatusInUse {
 				return true, nil
 			} else {
-				klog.Infof("%s Wait Stable 3 sec again.VolId[%s]", INFOLOG, volId)
+				klog.Infof("%s Wait Disk Stable 3 sec again.VolId[%s]", INFOLOG, volId)
 				return false, nil
 			}
 		}
@@ -1643,7 +1695,7 @@ func (cm *zecCloudManager) waitDiskSnapStatus(status string, snapshotId string) 
 			if *response.Response.DataSet[0].Status == SnapStatusAvailable {
 				return true, nil
 			} else {
-				klog.Infof("%s Wait SnapAvaliable 3 sec again.snapshotId[%s]", INFOLOG, snapshotId)
+				klog.Infof("%s Wait Snap Avaliable 3 sec again.snapshotId[%s]", INFOLOG, snapshotId)
 				return false, nil
 			}
 		}
@@ -1670,7 +1722,7 @@ func (cm *zecCloudManager) waitDiskSnapStatus(status string, snapshotId string) 
 			if *response.Response.TotalCount == 0 {
 				return true, nil
 			} else {
-				klog.Infof("%s Wait SnapDeleted 3 sec again.snapshotId[%s]", INFOLOG, snapshotId)
+				klog.Infof("%s Wait Snap Deleted 3 sec again.snapshotId[%s]", INFOLOG, snapshotId)
 				return false, nil
 			}
 		}

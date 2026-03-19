@@ -43,7 +43,7 @@ const ZECVOLSERIAL_LEN = 20 //zec Disk Serial len 	example:d100om84ggf2oqdh05eg
 const ZECVMID_LEN = 19      //zec VmID len			example:1455441132925494374
 
 const (
-	Version              string = "v1.0.0"
+	Version              string = "v1.1.0"
 	DefaultProvisionName string = "disk.csi.zenlayer.com"
 	NodeDriverType       string = "node"
 	ControllerDriverType string = "controller"

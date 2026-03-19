@@ -17,10 +17,10 @@ images:
 
   controller:
     repo: "zenlayer297/zeccsi:"
-    tag: "v1.0.0"
+    tag: "v1.1.0"
   node:
     repo: "zenlayer297/zeccsi:"
-    tag: "v1.0.0"
+    tag: "v1.1.0"
   externalAttacher:
     repo: "sig-storage/csi-attacher:"    
     tag: "v4.8.0"

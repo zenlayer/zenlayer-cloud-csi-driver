@@ -58,13 +58,6 @@ func WaitForSpecificOrError(f func() (bool, error), timeout time.Duration, waitI
 	}
 }
 
-// WaitForSpecific wait a function return true.
-func WaitForSpecific(f func() bool, timeout time.Duration, waitInterval time.Duration) error {
-	return WaitForSpecificOrError(func() (bool, error) {
-		return f(), nil
-	}, timeout, waitInterval)
-}
-
 // WaitFor wait a function return true.
 func WaitFor(f func() (bool, error)) error {
 	return WaitForSpecificOrError(f, 180*time.Second, 3*time.Second)

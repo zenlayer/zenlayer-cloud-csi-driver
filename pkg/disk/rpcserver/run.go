@@ -20,10 +20,10 @@ import (
 	"github.com/zenlayer/zenlayer-cloud-csi-driver/pkg/cloud"
 	"github.com/zenlayer/zenlayer-cloud-csi-driver/pkg/common"
 	"github.com/zenlayer/zenlayer-cloud-csi-driver/pkg/disk/driver"
-	"k8s.io/kubernetes/pkg/util/mount"
+	k8smount "k8s.io/mount-utils"
 )
 
-func Run(driver *driver.DiskDriver, cloud cloud.CloudManager, mounter *mount.SafeFormatAndMount,
+func Run(driver *driver.DiskDriver, cloud cloud.CloudManager, mounter *k8smount.SafeFormatAndMount,
 	endpoint string, retryTimesMax int, driverType string) {
 
 	var servers Servers

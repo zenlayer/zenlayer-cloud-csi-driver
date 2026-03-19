@@ -33,6 +33,8 @@ import (
 )
 
 type ControllerServer struct {
+	csi.UnimplementedControllerServer
+
 	driver        *driver.DiskDriver
 	cloud         cloud.CloudManager
 	locks         *common.ResourceLocks
@@ -161,7 +163,7 @@ func (cs *ControllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		// create an empty volume
 		requiredSizeGib := common.ByteCeilToGib(requiredSizeByte)
 		klog.Infof("%s Will create empty volume[%s], size[%d]", INFOLOG, volName, requiredSizeGib)
-		newVolId, err := cs.cloud.CreateVolume(volName, requiredSizeGib, sc.GetDiskType().String(), topo.GetZone(), sc.GetPlaceGroupID())
+		newVolId, err := cs.cloud.CreateVolume(volName, requiredSizeGib, sc.GetDiskType().String(), topo.GetZone(), sc.GetPlaceGroupID(), sc.GetBurstEnable())
 		if err != nil {
 			klog.Errorf("%s Failed to create volume[%s], error[%v]", ERRORLOG, volName, err)
 			return nil, status.Error(codes.Internal, err.Error()+volName)
@@ -229,7 +231,7 @@ func (cs *ControllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 			requiredSizeGib := common.ByteCeilToGib(requiredSizeByte)
 
 			//restore vol from snap
-			newVolId, err := cs.cloud.CreateVolumeFromSnapshot(volName, requiredSizeGib, sc.GetDiskType().String(), topo.GetZone(), sc.GetPlaceGroupID(), snapId)
+			newVolId, err := cs.cloud.CreateVolumeFromSnapshot(volName, requiredSizeGib, sc.GetDiskType().String(), topo.GetZone(), sc.GetPlaceGroupID(), snapId, sc.GetBurstEnable())
 			if err != nil {
 				klog.Errorf("%s Failed to create volume[%s], snapid[%s], error[%v]", ERRORLOG, volName, snapId, err)
 				return nil, status.Error(codes.Internal, err.Error()+volName)

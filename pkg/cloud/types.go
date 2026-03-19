@@ -17,89 +17,60 @@ limitations under the License.
 package cloud
 
 /*
-Instance Status(v0.2.0)
-
-	DEPLOYING 创建部署中。
-	REBUILDING 重装系统中。
-	REBOOT 系统重启中。
-	RUNNING 运行开机。
-	STOPPED 已关机状态。
-	BOOTING 系统启动中。
-	RELEASING 实例释放中。
-	STOPPING 系统关机中。
-	RECYCLE 实例处于回收站。
-	RECYCLING 实例回收中。
-	CREATE_FAILED 创建失败。
-	IMAGING 镜像制作中。
-	RESIZING 变更规格大小中。
+Instance Status(v0.2.23)
+DEPLOYING			创建部署中。
+REBUILDING			重装系统中。
+REBOOT				系统重启中。
+RUNNING				运行开机。
+STOPPED				已关机状态。
+BOOTING				系统启动中。
+RELEASING			实例释放中。
+STOPPING			系统关机中。
+RECYCLE				实例处于回收站。
+RECYCLING			实例回收中。
+CREATE_FAILED		创建失败。
+IMAGING				镜像制作中。
+RESIZING			变更规格大小中。
 */
 const (
 	VmStatusRunning      string = "RUNNING"
-	VmStatusStopped      string = "STOPPED"
-	VmStatusRecycle      string = "RECYCLE"
-	VmStatusStopping     string = "STOPPING"
-	VmStatusBooting      string = "BOOTING"
-	VmStatusReleasing    string = "RELEASING"
-	VmStatusReboot       string = "REBOOT"
-	VmStatusDeploying    string = "DEPLOYING"
-	VmStatusRebuilding   string = "REBUILDING"
-	VmStatusRecycling    string = "RECYCLING"
-	VmStatusResizing     string = "RESIZING"
-	VmStatusImaging      string = "IMAGING"
-	VmStatusCreateFailed string = "CREATE_FAILED"
 )
 
 /*
-Volume Status(v0.2.0)
-
-	CREATING 			创建中
-	IN_USE  			挂载实例的
-	AVAILABLE 			可用，未挂载实例的
-	CHANGING  			扩容中
-	ATTACHING 			挂载中
-	DETACHING 			卸载中
-	DELETING 			销毁中
-	RECYCLING			回收中
-	RECYCLED 			处于回收状态等待销毁
-	FAILED 				创建失败
-	SNAPSHOT_CREATING 	快照创建中
-	ROLLING_BACK 		快照回滚中
-	DELETED				csi定义状态 已经删除
-	STABLE				csi定义状态 稳定状态available或者in_use
+Volume Status(v0.2.23)
+CREATING			创建中。
+IN_USE				挂载使用中。
+AVAILABLE			未挂载。
+CHANGING			变更大小中。
+ATTACHING			云盘挂载实例中。
+DETACHING			云盘解绑实例中。
+DELETING			销毁中。
+RECYCLED			处于回收状态，等待销毁。
+RECYCLING			回收中。
+FAILED				创建失败。
+SNAPSHOT_CREATING	快照创建过程中。
+ROLLING_BACK		云盘使用快照回滚过程中。
+DELETED				csi定义状态 已经删除
+STABLE				csi定义状态 稳定状态available或者in_use
 */
 const (
-	DiskStatusCreating         string = "CREATING"
 	DiskStatusInUse            string = "IN_USE"
 	DiskStatusAvailable        string = "AVAILABLE"
-	DiskStatusChanging         string = "CHANGING"
-	DiskStatusAttaching        string = "ATTACHING"
-	DiskStatusDetaching        string = "DETACHING"
-	DiskStatusDeleting         string = "DELETING"
-	DiskStatusRecycling        string = "RECYCLING"
-	DiskStatusRecycled         string = "RECYCLED"
-	DiskStatusFailed           string = "FAILED"
-	DiskStatusSnapshotCreating string = "SNAPSHOT_CREATING"
-	DiskStatusRollingBack      string = "ROLLING_BACK"
 	DiskStatusDeleted          string = "DELETED"
 	DiskStatusStable           string = "STABLE"
 )
 
 /*
-Snapshot Status(v0.2.0)
-
-	CREATING		创建中
-	AVAILABLE		创建成功
-	FAILED			创建失败
-	ROLLING_BACK	回滚到此快照中
-	DELETING		释放中
-	DELETED			csi定义状态 已经删除
+Snapshot Status(v0.2.23)
+CREATING			创建中。
+AVAILABLE			创建成功。
+FAILED				创建失败。
+ROLLING_BACK		回滚到此快照中。
+DELETING			释放中。
+DELETED				csi定义状态 已经删除
 */
 const (
-	SnapStatusCreating    string = "CREATING"
 	SnapStatusAvailable   string = "AVAILABLE"
-	SnapStatusFailed      string = "FAILED"
-	SnapStatusRollingBack string = "ROLLING_BACK"
-	SnapStatusDeleting    string = "DELETING"
 	SnapStatusDeleted     string = "DELETED"
 )
 

@@ -16,7 +16,7 @@
 
 .PHONY: bin image
 
-DISK_VERSION=v1.0.0
+DISK_VERSION=v1.1.0
 
 DISK_IMAGE_NAME=docker.io/zenlayer297/zeccsi
 CONTAINER_CMD=docker
@@ -24,7 +24,7 @@ CONTAINER_CMD=docker
 GOARCH=$(shell go env GOARCH 2>/dev/null)
 ifeq ($(GOARCH),amd64)
 	BASE_IMAGE=docker.io/ubuntu:24.04
-	BUILD_IMAGE=docker.io/library/golang:1.24
+	BUILD_IMAGE=docker.io/library/golang:1.25
 else 
 	exit 1
 endif

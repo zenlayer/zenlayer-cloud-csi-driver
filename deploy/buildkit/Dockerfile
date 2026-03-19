@@ -1,5 +1,5 @@
 ARG BASE_IMAGE=docker.io/ubuntu:24.04
-ARG BUILD_IMAGE=docker.io/library/golang:1.24
+ARG BUILD_IMAGE=docker.io/library/golang:1.25
 
 FROM ${BUILD_IMAGE} as builder
 WORKDIR /zenlayer-cloud-csi-driver

@@ -5,7 +5,7 @@
 * Install docker
 * Install make
 * Directly executing 'make image' in the project root directory will generate an image to the docker image space, which can be seen using 'docker images'
-* run cmd 'docker save -o zeccsi.tar zenlayer297/zeccsi:v1.0.0' export image
+* run cmd 'docker save -o zeccsi.tar zenlayer297/zeccsi:v1.1.0' export image
 * Upload the image package to all nodes of the k8s cluster and manually import it into the k8s namespace 'ctr -n=k8s.io image import ./zeccsi.tar'
 * After load the image, then you can continue install csi pod refer to [ZecCSI Installation guide](./doc/install-guide.md)
 
@@ -37,6 +37,6 @@
     insecure = false
 ```
 * run buildkitd: buildkitd --config /etc/buildkit/buildkitd.toml &
-* run cmd in the project root directory: buildctl --addr tcp://127.0.0.1:1234 build --frontend=dockerfile.v0 --local context=.  --local dockerfile=./deploy/buildkit/  --output type=image,name=docker.io/zenlayer297/zeccsi:v1.0.0
+* run cmd in the project root directory: buildctl --addr tcp://127.0.0.1:1234 build --frontend=dockerfile.v0 --local context=.  --local dockerfile=./deploy/buildkit/  --output type=image,name=docker.io/zenlayer297/zeccsi:v1.1.0
 * check image: ctr -n=k8s.io image ls -q 
 * After load the image, then you can continue install csi pod refer to [ZecCSI Installation guide](./doc/install-guide.md)

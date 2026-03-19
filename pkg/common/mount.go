@@ -26,15 +26,14 @@ import (
 	"time"
 
 	"k8s.io/klog"
-	"k8s.io/kubernetes/pkg/util/mount"
 	k8smount "k8s.io/mount-utils"
 	utilexec "k8s.io/utils/exec"
 )
 
-func NewSafeMounter() *mount.SafeFormatAndMount {
-	realMounter := mount.New("")
-	realExec := mount.NewOsExec()
-	return &mount.SafeFormatAndMount{
+func NewSafeMounter() *k8smount.SafeFormatAndMount {
+	realMounter := k8smount.New("")
+	realExec := utilexec.New()
+	return &k8smount.SafeFormatAndMount{
 		Interface: realMounter,
 		Exec:      realExec,
 	}

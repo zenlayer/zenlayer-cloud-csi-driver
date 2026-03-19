@@ -1,8 +1,8 @@
 apiVersion: v2            
 name: zenlayer-cloud-csi-driver               
-version: 1.0.0            
+version: 1.1.0            
 type: application              
-appVersion: "v1.0.0"         
+appVersion: "v1.1.0"         
 description: "The kubernetes csi plugin released by zenlayer company"             
 keywords:
   - zenlayer

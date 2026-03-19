@@ -32,23 +32,23 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
-	"k8s.io/kubernetes/pkg/util/mount"
-	"k8s.io/kubernetes/pkg/util/resizefs"
 	k8smount "k8s.io/mount-utils"
 	utilexec "k8s.io/utils/exec"
 )
 
 type NodeServer struct {
+	csi.UnimplementedNodeServer
+
 	driver     *driver.DiskDriver
 	cloud      cloud.CloudManager
-	mounter    *mount.SafeFormatAndMount
+	mounter    *k8smount.SafeFormatAndMount
 	k8smounter k8smount.Interface
 	locks      *common.ResourceLocks
 }
 
 var _ csi.NodeServer = &NodeServer{}
 
-func NewNodeServer(d *driver.DiskDriver, c cloud.CloudManager, mnt *mount.SafeFormatAndMount) *NodeServer {
+func NewNodeServer(d *driver.DiskDriver, c cloud.CloudManager, mnt *k8smount.SafeFormatAndMount) *NodeServer {
 	return &NodeServer{
 		driver:     d,
 		cloud:      c,
@@ -129,7 +129,7 @@ func (ns *NodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		return nil, status.Error(codes.Internal, ERRORLOG+err.Error())
 	}
 
-	notMnt, err := ns.mounter.IsNotMountPoint(targetPath)
+	notMnt, err := ns.mounter.Interface.IsLikelyNotMountPoint(targetPath)
 	if err != nil {
 		return nil, status.Error(codes.Internal, ERRORLOG+err.Error())
 	}
@@ -205,7 +205,7 @@ func (ns *NodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 	defer ns.locks.Release(volId)
 
 	klog.Infof("%s Will umount volume[%s], targetpath[%v]", INFOLOG, req.VolumeId, targetPath)
-	err = mount.CleanupMountPoint(targetPath, ns.mounter.Interface, true)
+	err = k8smount.CleanupMountPoint(targetPath, ns.mounter.Interface, true)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Unmount targetpath[%s] error[%v]", targetPath, err)
 	}
@@ -278,7 +278,7 @@ func (ns *NodeServer) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 		return nil, status.Error(codes.InvalidArgument, ERRORLOG+" unsupport fsType "+fsType)
 	}
 
-	notMnt, err := mount.New("").IsLikelyNotMountPoint(targetPath)
+	notMnt, err := k8smount.New("").IsLikelyNotMountPoint(targetPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			if err = os.MkdirAll(targetPath, 0750); err != nil {
@@ -379,7 +379,7 @@ func (ns *NodeServer) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 		return &csi.NodeUnstageVolumeResponse{}, nil
 	}
 	// count mount point
-	_, cnt, err := mount.GetDeviceNameFromMount(ns.mounter, targetPath)
+	_, cnt, err := k8smount.GetDeviceNameFromMount(ns.mounter, targetPath)
 	if err != nil {
 		return nil, status.Error(codes.Internal, ERRORLOG+err.Error())
 	}
@@ -490,7 +490,7 @@ func (ns *NodeServer) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 	}
 
 	klog.Infof("%s Will Resize file system device[%s], mount path[%s], blockPath[%s], request size[%d]Byte", INFOLOG, devicePath, volPath, devicePath, reqSizeBytes)
-	resizer := resizefs.NewResizeFs(ns.mounter)
+	resizer := k8smount.NewResizeFs(ns.mounter.Exec)
 
 	ok, err := resizer.Resize(devicePath, volPath)
 	if err != nil {
@@ -554,12 +554,14 @@ func (ns *NodeServer) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVo
 
 	volumePath := req.GetVolumePath()
 	// block mode volume's stats can't be retrieved like those filesystem volumes
-	pathType, err := ns.mounter.GetFileType(volumePath)
+	fi, err := os.Stat(volumePath)
 	if err != nil {
-		klog.Errorf("%s GetFileType error, volumePath[%s], error[%v]", ERRORLOG, volumePath, err.Error())
-		return nil, status.Errorf(codes.NotFound, "failed to GetFileType volumePath[%s], err[%v]", volumePath, err)
+		klog.Errorf("%s stat error, volumePath[%s], error[%v]", ERRORLOG, volumePath, err)
+		return nil, status.Errorf(codes.NotFound, "failed to stat volumePath[%s], err[%v]", volumePath, err)
 	}
-	isBlockMode := pathType == mount.FileTypeBlockDev
+	mode := fi.Mode()
+
+	isBlockMode := mode&os.ModeDevice != 0 && mode&os.ModeCharDevice == 0
 
 	if isBlockMode {
 		blockSize, err := ns.getBlockSizeBytes(volumePath)
@@ -567,7 +569,7 @@ func (ns *NodeServer) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVo
 			klog.Errorf("%s getBlockSizeBytes() error, volumePath[%s], error[%v]", ERRORLOG, volumePath, err.Error())
 			return nil, status.Errorf(codes.Internal, "failed to get block capacity on path[%s], err[%v]", volumePath, err)
 		}
-		klog.Infof("%s getBlockSizeBytes() get path[%s], pathType[%s], BlockMode[%v], totalGB[%d]", INFOLOG, volumePath, pathType, isBlockMode, blockSize/common.Gib)
+		klog.Infof("%s getBlockSizeBytes() get path[%s], mode[%s], BlockMode[%v], totalGB[%d]", INFOLOG, volumePath, mode, isBlockMode, blockSize/common.Gib)
 		return &csi.NodeGetVolumeStatsResponse{
 			Usage: []*csi.VolumeUsage{
 				{
@@ -588,7 +590,7 @@ func (ns *NodeServer) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVo
 	totalB := int64(stat.Blocks * uint64(stat.Bsize))
 	freeB := int64(stat.Bfree * uint64(stat.Bsize))
 	availB := int64(stat.Bavail * uint64(stat.Bsize))
-	klog.Infof("%s Statfs() get path[%s], pathType[%s], BlockMode[%v], totalGB[%.1f], availableGB[%.1f], usedGB[%.1f]", INFOLOG, volumePath, pathType, isBlockMode, float64(totalB)/(float64)(common.Gib), float64(availB)/(float64)(common.Gib), float64(totalB-freeB)/(float64)(common.Gib))
+	klog.Infof("%s Statfs() get path[%s], mode[%s], BlockMode[%v], totalGB[%.1f], availableGB[%.1f], usedGB[%.1f]", INFOLOG, volumePath, mode, isBlockMode, float64(totalB)/(float64)(common.Gib), float64(availB)/(float64)(common.Gib), float64(totalB-freeB)/(float64)(common.Gib))
 	return &csi.NodeGetVolumeStatsResponse{
 		Usage: []*csi.VolumeUsage{
 			{
@@ -612,10 +614,12 @@ func (ns *NodeServer) getDevPathBySerial(serial string) (devpath string, err err
 
 	devpath = ""
 
-	output, err := ns.mounter.Exec.Run("lsblk", "-d", "-o", "NAME", "-n", "-i")
+	cmd := ns.mounter.Exec.Command("lsblk", "-d", "-o", "NAME", "-n", "-i")
+	outputb, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("ERROR:getDevPathBySerial lsblk cmd error[%s], out[%s]"+err.Error(), output)
+		return "", fmt.Errorf("ERROR: getDevPathBySerial lsblk cmd error: %v, output: %s", err, string(outputb))
 	}
+	output := strings.TrimSpace(string(outputb))
 
 	devlist := strings.Split(string(output[:]), "\n")
 
@@ -648,26 +652,30 @@ func (ns *NodeServer) getDevPathBySerial(serial string) (devpath string, err err
 
 func (ns *NodeServer) getBlockSizeBytes(devicePath string) (int64, error) {
 
-	output, err := ns.mounter.Exec.Run("blockdev", "--getsize64", devicePath)
+	cmd := ns.mounter.Exec.Command("blockdev", "--getsize64", devicePath)
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return -1, fmt.Errorf("ERROR:getBlockSizeBytes blockdev cmd error, path[%s], output[%s], err[%v]", devicePath, string(output), err)
+		return -1, fmt.Errorf("ERROR: getBlockSizeBytes blockdev cmd error, path[%s], output[%s], err[%v]", devicePath, string(output), err)
 	}
+
 	strOut := strings.TrimSpace(string(output))
-	gotSizeBytes, err := strconv.ParseInt(strOut, 10, 64)
+	blockSize, err := strconv.ParseInt(strOut, 10, 64)
 	if err != nil {
-		return -1, fmt.Errorf("failed to parse size %s into int a size", strOut)
+		return -1, fmt.Errorf("ERROR: parsing block size for path %s, output[%s], err[%v]", devicePath, strOut, err)
 	}
-	return gotSizeBytes, nil
+	return blockSize, nil
 }
 
 // createTargetMountPathIfNotExists creates the mountPath if it doesn't exist
 // if in block volume mode, a file will be created
 func (ns *NodeServer) createTargetMountPathIfNotExists(mountPath string, isBlockMode bool) error {
-	exists, err := ns.mounter.ExistsPath(mountPath)
+	_, err := os.Stat(mountPath)
 	if err != nil {
-		return err
-	}
-	if exists {
+		if os.IsNotExist(err) {
+		} else {
+			return err
+		}
+	} else {
 		return nil
 	}
 

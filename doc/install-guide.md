@@ -33,18 +33,18 @@ The driver requires All permissions to invoke Zenlayer Cloud OpenAPIs to manage 
 
 ```shell
 ## view chart/values.yaml View the configurable parameters during installation, example:[--set maxVolume=5]
-helm install zeccsi oci://registry-1.docker.io/zenlayer297/zenlayer-cloud-csi-driver --version 1.0.0
+helm install zeccsi oci://registry-1.docker.io/zenlayer297/zenlayer-cloud-csi-driver --version 1.1.0
 ```
 ### Manual installation csi pod && Automatic pull image
 
 ```shell
 helm package ./chart
-helm install zeccsi ./zenlayer-cloud-csi-driver-1.0.0.tgz
+helm install zeccsi ./zenlayer-cloud-csi-driver-1.1.0.tgz
 ```
 * You can also install csi with args, for example set controller-csi replica or specify controller-csi which node will be deployed.          
 * If only node02 nodes in your k8s cluster can be connected to the External public network, you need deploy controller-csi on node02        
   1. first add lable: kubectl label nodes node02 zeccsiType=Controller       
-  2. helm install zeccsi ./zenlayer-cloud-csi-driver-1.0.0.tgz --set controllerSelectorkey=zeccsiType --set controllerSelectorval=Controller --set replicaCount=1         
+  2. helm install zeccsi ./zenlayer-cloud-csi-driver-1.1.0.tgz --set controllerSelectorkey=zeccsiType --set controllerSelectorval=Controller --set replicaCount=1         
   3. Then Controller csi provisioner will deployed on node02, only have one replica        
 
 ## Verify
