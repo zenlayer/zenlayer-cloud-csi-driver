@@ -115,8 +115,6 @@ kubectl get vsc
 * v1.1.0 do not support volumegroupsnapshots.
 * v1.1.0 Snapshots rely on pv， If pv is deleted, the snapshot created with this pv will be automatically deleted in the storage system, so will leaving vs and vsc resource in the k8s cluster. The vs resource is no longer available, you need to clean it up manually.
 
-## Roadmap
-* Consider adding configuration files
 
 [GoReportCard Widget]: https://goreportcard.com/badge/github.com/zenlayer/zenlayer-cloud-csi-driver
 [GoReportCardResult]: https://goreportcard.com/report/github.com/zenlayer/zenlayer-cloud-csi-driver
