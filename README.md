@@ -108,7 +108,8 @@ kubectl get vsc
 ```
 
 ## Notice
-* The logs of zeccsi driver are persisted to /var/log/zenlayer_csi_logsbackups_fluent.log. This log file will not be rotate and will not be automatically deleted. It will be continuously appended.
+* The logs of zeccsi driver are persisted to /var/log/zenlayer_csi_logsbackups_fluent.log. This log file will not be rotate and will not be automatically deleted. It will be continuously appended.        
+* By default, each Elastic Compute Instance can mount two cloud disks, One Boot Disk and One Data Disk. chart/values.yaml maxVolume=9, So you need to submit an application on the console to modify Disks_per_instance to a maximum of 10 or the value you need(Products->Service Quotas->Elastic Compute->Disks_per_instance). Otherwise, only one pv can be created in a virtual machine.            
 
 ## Not supported feature Now
 * v1.1.0 do not support clone volume, only support create pvc from snapshot (dataSource:kind:VolumeSnapshot).

@@ -1,7 +1,7 @@
 replicaCount: 3                 ## controller type csi Number of copies
 controllerSelectorkey: ""       ## controller type csi pod selector lable key. If you want to control the node where the pod is located 
 controllerSelectorval: ""       ## controller type csi pod selectot lable val. If you want to control the node where the pod is located
-maxVolume: 9                    ## max attach volume num each node
+maxVolume: 9                    ## max attach volume num each node. By default, each Elastic Compute Instance can mount one data disk and one boot disk, Please read README.md Notice
 defaultZone: ""                 ## if your k8s cluster is deployed in one zenlayer region and only have one ResourceGroup, do not need config zone in storage-class. You can set this val when deployed csi driver
 defaultResourceGroup: ""        ## if your k8s cluster is deployed in one zenlayer region and only have one ResourceGroup, do not need config group in storage-class. You can set this val when deployed csi driver 
 
