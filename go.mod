@@ -7,10 +7,10 @@ require (
 	github.com/golang/protobuf v1.5.4
 	github.com/kubernetes-csi/csi-lib-utils v0.8.1
 	github.com/zenlayer/zenlayercloud-sdk-go v0.2.23
-	golang.org/x/net v0.47.0
-	golang.org/x/sys v0.38.0
-	google.golang.org/grpc v1.78.0
-	google.golang.org/protobuf v1.36.10
+	golang.org/x/net v0.49.0
+	golang.org/x/sys v0.40.0
+	google.golang.org/grpc v1.80.0
+	google.golang.org/protobuf v1.36.11
 	k8s.io/apimachinery v0.28.6
 	k8s.io/client-go v0.28.6
 	k8s.io/klog v1.0.0
@@ -28,8 +28,8 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
-	golang.org/x/text v0.31.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20251029180050-ab9386a59fda // indirect
+	golang.org/x/text v0.33.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260120221211-b8f7ae30c516 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
