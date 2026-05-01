@@ -6,7 +6,7 @@ require (
 	github.com/container-storage-interface/spec v1.10.0
 	github.com/golang/protobuf v1.5.4
 	github.com/kubernetes-csi/csi-lib-utils v0.8.1
-	github.com/zenlayer/zenlayercloud-sdk-go v0.2.23
+	github.com/zenlayer/zenlayercloud-sdk-go v0.2.32
 	golang.org/x/net v0.47.0
 	golang.org/x/sys v0.38.0
 	google.golang.org/grpc v1.78.0
