@@ -30,14 +30,36 @@ import (
 	"k8s.io/klog"
 )
 
+// entryTimes correlates a function invocation's entry time with the unique hash
+// returned by EntryFunction, so ExitFunction can report the elapsed duration
+// without changing the (funcName, hash) call signature used across the codebase.
+var (
+	entryTimes   = make(map[string]time.Time)
+	entryTimesMu sync.Mutex
+)
+
 func EntryFunction(functionName string) (info string, hash string) {
 	current := time.Now().UTC()
 	hash = GenerateHashInEightBytes(current.UTC().String())
+	entryTimesMu.Lock()
+	entryTimes[hash] = current
+	entryTimesMu.Unlock()
 	return fmt.Sprintf("Enter[%s], UTC Time[%s], Hash[%s]", functionName, current.Format(DefaultTimeFormat), hash), hash
 }
 
 func ExitFunction(functionName, hash string) (info string) {
 	current := time.Now().UTC()
+
+	entryTimesMu.Lock()
+	start, ok := entryTimes[hash]
+	if ok {
+		delete(entryTimes, hash)
+	}
+	entryTimesMu.Unlock()
+
+	if ok {
+		return fmt.Sprintf("Exit[%s], UTC Time[%s], Hash[%s], Elapsed[%s]", functionName, current.Format(DefaultTimeFormat), hash, current.Sub(start).Round(time.Millisecond))
+	}
 	return fmt.Sprintf("Exit[%s], UTC Time[%s], Hash[%s]", functionName, current.Format(DefaultTimeFormat), hash)
 }
 
@@ -62,6 +84,7 @@ type retryLimiter struct {
 type RetryLimiter interface {
 	Add(id string)
 	Try(id string) bool
+	Reset(id string)
 	GetMaxRetryTimes() int
 	GetCurrentRetryTimes(id string) int
 }
@@ -86,11 +109,22 @@ func (r *retryLimiter) Try(id string) bool {
 	return r.maxRetry == 0 || r.record[id] <= r.maxRetry
 }
 
+// Reset clears the failure count for id. It should be called after a successful
+// operation so that a volume reused across attach/detach cycles does not keep
+// accumulating failures over the controller's lifetime.
+func (r *retryLimiter) Reset(id string) {
+	r.mux.Lock()
+	defer r.mux.Unlock()
+	delete(r.record, id)
+}
+
 func (r *retryLimiter) GetMaxRetryTimes() int {
 	return r.maxRetry
 }
 
 func (r *retryLimiter) GetCurrentRetryTimes(id string) int {
+	r.mux.RLock()
+	defer r.mux.RUnlock()
 	return r.record[id]
 }
 
@@ -104,6 +138,7 @@ func ParseCsiVolId(csivolId string) (volid string, serial string, err error) {
 	serial = s[len(s)-1]
 	if len(volid) != ZECVOLID_LEN || len(serial) != ZECVOLSERIAL_LEN {
 		klog.Errorf("ERROR:ParseCsiVolId() volume id len or serial len error. volid len[%d], serial len[%d], csivolId[%s], volid[%s], serial[%s]", len(volid), len(serial), csivolId, volid, serial)
+		return "", "", fmt.Errorf("ERROR:ParseCsiVolId() invalid volume id, volid len[%d], serial len[%d], csivolId[%s]", len(volid), len(serial), csivolId)
 	}
 	return volid, serial, nil
 }
@@ -126,7 +161,7 @@ func VerifyEnv() (platform string, err error) {
 	out, err := cmd_blockdev.CombinedOutput()
 	if err != nil {
 		klog.Errorf("ERROR:VerifyEnv() missing cmd blockdev")
-		return "", fmt.Errorf("ERROR: blockdev cmd error:%s, out:%s"+err.Error(), out)
+		return "", fmt.Errorf("ERROR: blockdev cmd error: %v, out: %s", err, out)
 	}
 
 	//check lsblk cmd
@@ -134,7 +169,7 @@ func VerifyEnv() (platform string, err error) {
 	out, err = cmd_lsblk.CombinedOutput()
 	if err != nil {
 		klog.Errorf("ERROR:VerifyEnv() missing cmd lsblk")
-		return "", fmt.Errorf("ERROR: lsblk cmd error:%s, out:%s"+err.Error(), out)
+		return "", fmt.Errorf("ERROR: lsblk cmd error: %v, out: %s", err, out)
 	}
 
 	return platform, nil
@@ -180,5 +215,6 @@ func GetZecSecret(akpath string, skpath string) (ak string, pw string, err error
 		return "", "", fmt.Errorf("ERROR: GetZecSecret Read secretPw err. path[%s]", skpath)
 	}
 
-	return string(zec_ak[:]), string(zec_pw[:]), nil
+	// 裁剪首尾空白/换行
+	return strings.TrimSpace(string(zec_ak)), strings.TrimSpace(string(zec_pw)), nil
 }

@@ -33,7 +33,7 @@ var (
 	driverName           = flag.String("drivername", common.DefaultProvisionName, "name of csi driver.")
 	endpoint             = flag.String("endpoint", "unix://csi/csi.sock", "CSI UnixSocket endpoint.")
 	maxVolume            = flag.Int64("maxvolume", 9, "Maximum number of volumes that controller can publish to the node.")
-	nodeNmae             = flag.String("nodename", "", "localhost hostname.")
+	nodeName             = flag.String("nodename", "", "localhost hostname.")
 	retryDetachTimesMax  = flag.Int("retry-detach-times-max", 10, "Maximum retry times of failed detach volume. Set to 0 to disable the limit.")
 	secretpathAK         = flag.String("secretpathAK", "/etc/zec_secret/AccessKeyID", "zec console accesskeyId file.")
 	secretpathPW         = flag.String("secretpathPW", "/etc/zec_secret/AccessKeyPassword", "zec console accesskeyPassword file.")
@@ -43,6 +43,16 @@ var (
 	defaultZone          = flag.String("defaultZone", "", "")
 	defaultResourceGroup = flag.String("defaultGroup", "", "")
 )
+
+// maskSecret keeps only the last few characters of a secret for logging,
+// so credentials are never written to logs in plaintext.
+func maskSecret(s string) string {
+	const tail = 4
+	if len(s) <= tail {
+		return "****"
+	}
+	return "****" + s[len(s)-tail:]
+}
 
 func main() {
 	klog.InitFlags(nil)
@@ -121,7 +131,7 @@ func main() {
 	}
 
 	klog.Infof("Starting ZenlayerCSI Version[%s], AccessKeyID[%s], AccessKeyPassword[%s], localhostname[%s], Platform[%s], VmID[%s], VmZone[%s], featureGates[%v], defaultzone[%s], defaultResourceGroup[%s], mixDriver[%v], drivetype[%s], maxvol[%d]",
-		common.Version, ak, pw, *nodeNmae, zec_platform, zec_vm_id, zec_vm_zone, common.FeatureGates, common.DefaultZone, common.DefaultResourceGroup, common.MixDriver, *driverType, *maxVolume)
+		common.Version, maskSecret(ak), maskSecret(pw), *nodeName, zec_platform, zec_vm_id, zec_vm_zone, common.FeatureGates, common.DefaultZone, common.DefaultResourceGroup, common.MixDriver, *driverType, *maxVolume)
 
 	diskDriverInput := &driver.InitDiskDriverInput{
 		Name:          *driverName,

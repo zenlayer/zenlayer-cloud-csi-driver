@@ -18,6 +18,7 @@ package driver
 
 import (
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"k8s.io/klog"
 )
 
 /*
@@ -102,6 +103,7 @@ var DefaultPluginCapability = []*csi.PluginCapability{
 }
 
 const (
+	InvalidVolumeType  VolumeType = -1
 	BasicVolumeType    VolumeType = 1
 	StandardVolumeType VolumeType = 2
 	DefaultVolumeType             = StandardVolumeType
@@ -130,7 +132,11 @@ func StringToType(s string) VolumeType {
 	} else if s == StandardNvmeName {
 		return StandardVolumeType
 	} else {
-		panic("VolumeType ERROR")
+		// Do not panic on unexpected input (e.g. a disk category returned by the
+		// cloud API that this driver does not recognize). Return an invalid type
+		// so callers can detect it via VolumeType.IsValid().
+		klog.Errorf("ERROR:StringToType() unsupported volume type string[%s]", s)
+		return InvalidVolumeType
 	}
 }
 
@@ -162,7 +168,7 @@ func (v VmType) Int() int {
 	return int(v)
 }
 
-func (v VmType) IsVaild() bool {
+func (v VmType) IsValid() bool {
 	if _, ok := VmTypeName[v]; !ok {
 		return false
 	} else {

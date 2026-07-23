@@ -15,7 +15,7 @@ provisioner: disk.csi.zenlayer.com                       //Zenlayer csi driver n
 parameters:                                              //None of the parameters are mandatory
   fsType: "ext4"                                         //mount filesystem type. support ext4 ext3 or xfs. If not setting, default is ext4
   type: "1"                                              //cloud disk type：1 Basic NVMe SSD, 2 Standard NVMe SSD. If not setting, default is Standard NVME                                    
-  zoneID: "asia-north-1a"                                //cloud disk zone，It only takes effect when volumeBindingMode=Immediate. If not setting in storageclass, You must specific this val when "helm install --set defaultResourceGroup="" --set defaultZone="""
+  zoneID: "asia-north-1a"                                //cloud disk zone. It only takes effect when volumeBindingMode=Immediate. If not setting in storageclass, You must specific this val when "helm install --set defaultResourceGroup="" --set defaultZone="""
   placeGroupID: "xxx"                                    //cloud disk zenlayer console resource group ID. If not setting in storageclass, You must specific this val when "helm install --set defaultResourceGroup="" --set defaultZone="""   
   burstEnable: "false"                                   //cloud disk qos burst enable, true or false
 
@@ -91,7 +91,7 @@ spec:
 
 ## Topology Support: If The k8s cluster is deployed in virtual machine in One zenlayer area
 * In the configuration of storage-class, the zoneID information is set to the zoneID of this area. The automatically created cloud disk belongs to this zone, and all virtual machine nodes in the k8s cluster also belong to this zone. When the cloud disk is mounted to the virtual machine, it complies with the pod scheduling policy of k8s.    
-* You can omit every parameters such as zoneID and placeGroupID in storage-class, but you need specific these when use helm install csi-driver.  (Only Support if k8s cluster in One zenlayer area) 
+* You can omit all parameters such as zoneID and placeGroupID in storage-class, but you need to specify these when using helm install csi-driver.  (Only Support if k8s cluster in One zenlayer area) 
 
 ``` yaml
 apiVersion: storage.k8s.io/v1

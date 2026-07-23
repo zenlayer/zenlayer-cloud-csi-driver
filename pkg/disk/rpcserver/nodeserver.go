@@ -129,11 +129,21 @@ func (ns *NodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		return nil, status.Error(codes.Internal, ERRORLOG+err.Error())
 	}
 
-	notMnt, err := ns.mounter.Interface.IsLikelyNotMountPoint(targetPath)
+	// block mode: targetPath is a file, IsLikelyNotMountPoint (designed for dirs,
+	// compares st_dev with parent) can't detect a bind-mounted device file, so use
+	// IsMountPoint which consults the mount table. filesystem mode keeps the cheaper check.
+	var alreadyMounted bool
+	if isBlockMode {
+		alreadyMounted, err = ns.mounter.Interface.IsMountPoint(targetPath)
+	} else {
+		var notMnt bool
+		notMnt, err = ns.mounter.Interface.IsLikelyNotMountPoint(targetPath)
+		alreadyMounted = !notMnt
+	}
 	if err != nil {
 		return nil, status.Error(codes.Internal, ERRORLOG+err.Error())
 	}
-	if !notMnt {
+	if alreadyMounted {
 		klog.Infof("%s TargetPath[%s] is mounted, not need mount again", INFOLOG, targetPath)
 		return &csi.NodePublishVolumeResponse{}, nil
 	}
@@ -278,7 +288,7 @@ func (ns *NodeServer) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 		return nil, status.Error(codes.InvalidArgument, ERRORLOG+" unsupport fsType "+fsType)
 	}
 
-	notMnt, err := k8smount.New("").IsLikelyNotMountPoint(targetPath)
+	notMnt, err := ns.k8smounter.IsLikelyNotMountPoint(targetPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			if err = os.MkdirAll(targetPath, 0750); err != nil {
@@ -371,31 +381,14 @@ func (ns *NodeServer) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 	defer klog.Infof("%s succ unlock resource[%s]", INFOLOG, volId)
 	defer ns.locks.Release(volId)
 
-	notMnt, err := ns.mounter.IsLikelyNotMountPoint(targetPath)
-	if err != nil {
-		return nil, status.Error(codes.Internal, ERRORLOG+err.Error())
-	}
-	if notMnt {
-		return &csi.NodeUnstageVolumeResponse{}, nil
-	}
-	// count mount point
-	_, cnt, err := k8smount.GetDeviceNameFromMount(ns.mounter, targetPath)
-	if err != nil {
-		return nil, status.Error(codes.Internal, ERRORLOG+err.Error())
-	}
-
+	// CleanupMountPoint unmounts targetPath if mounted and removes the staging
+	// directory; it is idempotent (no-op when already unmounted / absent), keeping
+	// this symmetric with NodeUnpublishVolume.
 	klog.Infof("%s Will umount targetPath[%s]", INFOLOG, targetPath)
-	err = ns.mounter.Unmount(targetPath)
-	if err != nil {
-		return nil, status.Error(codes.Internal, ERRORLOG+err.Error())
+	if err = k8smount.CleanupMountPoint(targetPath, ns.mounter.Interface, true); err != nil {
+		return nil, status.Errorf(codes.Internal, "%sUnmount staging path[%s] error[%v]", ERRORLOG, targetPath, err)
 	}
-	klog.Infof("%s Success umount targetPath[%s]. before umount cnt[%d]", INFOLOG, targetPath, cnt)
-	cnt--
-
-	if cnt > 0 {
-		klog.Errorf("%s Volume[%s] still mounted in instance[%s]", ERRORLOG, volId, ns.driver.GetNodeId())
-		return nil, status.Error(codes.Internal, "unmount failed")
-	}
+	klog.Infof("%s Success umount targetPath[%s]", INFOLOG, targetPath)
 
 	return &csi.NodeUnstageVolumeResponse{}, nil
 }
@@ -413,7 +406,6 @@ func (ns *NodeServer) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoReque
 	defer klog.Info(common.ExitFunction(funcName, hash))
 	klog.Info(info)
 	ERRORLOG := "ERROR:" + funcName + hash + " "
-	INFOLOG := "INFO:" + funcName + hash + " "
 
 	vminfo := cloud.NewZecVm()
 	vminfo.ZecVm_Type = driver.BasicVmType.Int()
@@ -432,7 +424,6 @@ func (ns *NodeServer) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoReque
 		},
 	}
 
-	_ = INFOLOG
 	return &csi.NodeGetInfoResponse{
 		NodeId:             ns.driver.GetNodeId(),
 		MaxVolumesPerNode:  ns.driver.GetMaxVolumePerNode(),
@@ -626,14 +617,16 @@ func (ns *NodeServer) getDevPathBySerial(serial string) (devpath string, err err
 	for _, dev := range devlist {
 		if dev != "" {
 			devserial_path := "/sys/block/" + dev + "/device/block/" + dev + "/serial"
-			devserial, err := os.ReadFile(devserial_path)
+			devserialRaw, err := os.ReadFile(devserial_path)
 			if err != nil {
 				klog.Errorf("ERROR:getDevPathBySerial read[%s] file error, dev[%s]", devserial_path, dev)
 				continue
 			}
 
+			devserial := strings.TrimSpace(string(devserialRaw))
+
 			klog.Infof("INFO:getDevPathBySerial list dev[%s], serial[%s], target-serial[%s], list count[%d]", dev, devserial, serial, len(devlist)-1)
-			if string(devserial[:]) == serial {
+			if devserial == serial {
 				if devpath != "" {
 					return "", fmt.Errorf("ERROR:serial[%s/%s] dup", devserial, serial)
 				}

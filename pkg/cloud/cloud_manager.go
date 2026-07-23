@@ -89,9 +89,13 @@ func NewZecCloudManager(CLOUDAK string, CLOUDSK string, drivertype string) (*zec
 	cloud_secretKeyPassword := CLOUDSK
 
 	cm.zecClient, err = zec.NewClient(config, cloud_secretKeyId, cloud_secretKeyPassword)
-	if err != nil || cm.zecClient == nil {
-		klog.Errorf("ERROR:Init zec.NewClient error[%v]", err.Error())
+	if err != nil {
+		klog.Errorf("ERROR:Init zec.NewClient error[%v]", err)
 		return nil, err
+	}
+	if cm.zecClient == nil {
+		klog.Errorf("ERROR:Init zec.NewClient returned a nil client without error")
+		return nil, errors.New("ERROR:Init zec.NewClient returned a nil client")
 	}
 	return cm, nil
 }
@@ -131,15 +135,11 @@ func (cm *zecCloudManager) Probe() error {
 
 	request := zec.NewDescribeDiskRegionsRequest()
 
-	response, err := cm.zecClient.DescribeDiskRegions(request)
-	if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-		klog.Errorf("%s API ERROR, error[%v]", ERRORLOG, err.Error())
-		return err
-	} else if err != nil {
+	_, err := cm.zecClient.DescribeDiskRegions(request)
+	if err != nil {
 		klog.Errorf("%s API ERROR, error[%v]", ERRORLOG, err.Error())
 		return err
 	}
-	_ = response
 	return err
 }
 
@@ -153,12 +153,7 @@ func (cm *zecCloudManager) GetZoneList() ([]string, error) {
 	request := zec.NewDescribeDiskRegionsRequest()
 
 	response, err := cm.zecClient.DescribeDiskRegions(request)
-	if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-		if err != nil {
-			klog.Errorf("%s API ERROR, error[%v]", ERRORLOG, err.Error())
-			return nil, err
-		}
-	} else if err != nil {
+	if err != nil {
 		klog.Errorf("%s API ERROR, error[%v]", ERRORLOG, err.Error())
 		return nil, err
 	}
@@ -234,16 +229,11 @@ func (cm *zecCloudManager) CreateVolume(volName string, volSize int, volCategory
 	request.BurstingEnabled = &burstEnable
 
 	response, err := cm.zecClient.CreateDisks(request)
-	if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-		if err != nil {
-			klog.Errorf("%s API ERROR, error[%v], volName[%s]", ERRORLOG, err.Error(), volName)
-			return "", err
-		}
-	} else if err != nil {
+	if err != nil {
 		klog.Errorf("%s API ERROR, error[%v], volName[%s]", ERRORLOG, err.Error(), volName)
 		return "", err
 	}
-	if response.Response == nil {
+	if response.Response == nil || len(response.Response.DiskIds) == 0 {
 		return "", errors.New(ERRORLOG + " nil response. volName=" + volName)
 	}
 
@@ -262,7 +252,6 @@ func (cm *zecCloudManager) CreateVolumeFromSnapshot(volName string, volSize int,
 	klog.Info(funcInfo)
 	defer klog.Info(csicommon.ExitFunction(funcName, hash))
 	ERRORLOG := "ERROR:" + funcName + hash + " "
-	INFOLOG := "INFO:" + funcName + hash + " "
 
 	if volName == "" || volSize == 0 || volCategory == "" || zoneId == "" || resourceGroupID == "" || snapshotId == "" {
 		return "", errors.New(ERRORLOG + "args error")
@@ -280,16 +269,11 @@ func (cm *zecCloudManager) CreateVolumeFromSnapshot(volName string, volSize int,
 	request.BurstingEnabled = &burstEnable
 
 	response, err := cm.zecClient.CreateDisks(request)
-	if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-		if err != nil {
-			klog.Errorf("%s API ERROR, error[%v], volName[%s]", ERRORLOG, err.Error(), volName)
-			return "", err
-		}
-	} else if err != nil {
+	if err != nil {
 		klog.Errorf("%s API ERROR, error[%v], volName[%s]", ERRORLOG, err.Error(), volName)
 		return "", err
 	}
-	if response.Response == nil {
+	if response.Response == nil || len(response.Response.DiskIds) == 0 {
 		return "", errors.New(ERRORLOG + " nil response. volName=" + volName)
 	}
 
@@ -298,7 +282,6 @@ func (cm *zecCloudManager) CreateVolumeFromSnapshot(volName string, volSize int,
 	if err = cm.waitDiskStatus(DiskStatusAvailable, volId); err != nil {
 		return "", err
 	}
-	_ = INFOLOG
 	return volId, nil
 }
 
@@ -341,7 +324,7 @@ func (cm *zecCloudManager) DeleteVolume(volId string) (err error) {
 	request := zec.NewReleaseDiskRequest()
 	request.DiskId = &volId
 
-	response, err := cm.zecClient.ReleaseDisk(request)
+	_, err = cm.zecClient.ReleaseDisk(request)
 	if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
 		if err != nil && err.(*common.ZenlayerCloudSdkError).Code == OPERATION_FAILED_RESOURCE_NOT_FOUND {
 			klog.Infof("%s API INFO, volId[%s] Not Found", INFOLOG, volId)
@@ -359,7 +342,6 @@ func (cm *zecCloudManager) DeleteVolume(volId string) (err error) {
 	if err = cm.waitDiskStatus(DiskStatusDeleted, volId); err != nil {
 		return err
 	}
-	_ = response
 	return nil
 }
 
@@ -403,13 +385,8 @@ func (cm *zecCloudManager) AttachVolume(volId string, vmId string) (err error) {
 	request.DiskIds = append(request.DiskIds, volId)
 	request.InstanceId = &vmId
 
-	response, err := cm.zecClient.AttachDisks(request)
-	if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-		if err != nil {
-			klog.Errorf("%s API ERROR, error[%v], volId[%s], vmId[%s]", ERRORLOG, err.Error(), volId, vmId)
-			return err
-		}
-	} else if err != nil {
+	_, err = cm.zecClient.AttachDisks(request)
+	if err != nil {
 		klog.Errorf("%s API ERROR, error[%v], volId[%s], vmId[%s]", ERRORLOG, err.Error(), volId, vmId)
 		return err
 	}
@@ -417,7 +394,6 @@ func (cm *zecCloudManager) AttachVolume(volId string, vmId string) (err error) {
 	if err = cm.waitDiskStatus(DiskStatusInUse, volId); err != nil {
 		return err
 	}
-	_ = response
 	return nil
 }
 
@@ -466,13 +442,8 @@ func (cm *zecCloudManager) DetachVolume(volId string) (err error) {
 	var checkVmRunning bool = false
 	request.InstanceCheckFlag = &checkVmRunning
 
-	response, err := cm.zecClient.DetachDisks(request)
-	if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-		if err != nil {
-			klog.Errorf("%s API ERROR, error[%v], volId[%s]", ERRORLOG, err.Error(), volId)
-			return err
-		}
-	} else if err != nil {
+	_, err = cm.zecClient.DetachDisks(request)
+	if err != nil {
 		klog.Errorf("%s API ERROR, error[%v], volId[%s]", ERRORLOG, err.Error(), volId)
 		return err
 	}
@@ -480,7 +451,6 @@ func (cm *zecCloudManager) DetachVolume(volId string) (err error) {
 	if err = cm.waitDiskStatus(DiskStatusAvailable, volId); err != nil {
 		return err
 	}
-	_ = response
 	return nil
 }
 
@@ -523,13 +493,8 @@ func (cm *zecCloudManager) ResizeVolume(volId string, requestSize int) error {
 	request.DiskId = &volId
 	request.DiskSize = &requestSize
 
-	response, err := cm.zecClient.ResizeDisk(request)
-	if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-		if err != nil {
-			klog.Errorf("%s API ERROR, error[%v], volId[%s]", ERRORLOG, err.Error(), volId)
-			return err
-		}
-	} else if err != nil {
+	_, err := cm.zecClient.ResizeDisk(request)
+	if err != nil {
 		klog.Errorf("%s API ERROR, error[%v], volId[%s]", ERRORLOG, err.Error(), volId)
 		return err
 	}
@@ -537,7 +502,6 @@ func (cm *zecCloudManager) ResizeVolume(volId string, requestSize int) error {
 	if err = cm.waitDiskStatus(DiskStatusStable, volId); err != nil {
 		return err
 	}
-	_ = response
 	return nil
 }
 
@@ -627,17 +591,12 @@ func (cm *zecCloudManager) FindVolume(volId string) (*ZecVolume, error) {
 	request.DiskIds = append(request.DiskIds, volId)
 
 	response, err := cm.zecClient.DescribeDisks(request)
-	if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-		if err != nil {
-			klog.Errorf("%s API ERROR, error[%v], volId[%s]", ERRORLOG, err.Error(), volId)
-			return nil, err
-		}
-	} else if err != nil {
+	if err != nil {
 		klog.Errorf("%s API ERROR, error[%v], volId[%s]", ERRORLOG, err.Error(), volId)
 		return nil, err
 	}
 
-	if response.Response.TotalCount == nil || response.Response == nil {
+	if response.Response == nil || response.Response.TotalCount == nil {
 		return nil, errors.New(ERRORLOG + " nil response. volid=" + volId)
 	}
 	if *response.Response.TotalCount == 0 {
@@ -646,7 +605,7 @@ func (cm *zecCloudManager) FindVolume(volId string) (*ZecVolume, error) {
 	if *response.Response.TotalCount != 1 {
 		return nil, errors.New(ERRORLOG + "Volid Repeat. volid=" + volId)
 	}
-	if response.Response.DataSet[0] == nil {
+	if len(response.Response.DataSet) == 0 || response.Response.DataSet[0] == nil {
 		return nil, errors.New(ERRORLOG + " nil response. volid=" + volId)
 	}
 
@@ -712,16 +671,11 @@ func (cm *zecCloudManager) FindVolumeByName(volName string, zoneID string, sizeG
 	request.PageNum = &pagenum
 
 	response, err := cm.zecClient.DescribeDisks(request)
-	if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-		if err != nil {
-			klog.Errorf("%s API ERROR, error[%v], volName[%s]", ERRORLOG, err.Error(), volName)
-			return nil, err
-		}
-	} else if err != nil {
+	if err != nil {
 		klog.Errorf("%s API ERROR, error[%v], volName[%s]", ERRORLOG, err.Error(), volName)
 		return nil, err
 	}
-	if response.Response.TotalCount == nil || response.Response == nil {
+	if response.Response == nil || response.Response.TotalCount == nil {
 		return nil, errors.New(ERRORLOG + " nil response. volName=" + volName)
 	}
 
@@ -731,7 +685,8 @@ func (cm *zecCloudManager) FindVolumeByName(volName string, zoneID string, sizeG
 
 	//用于保存所有数据
 	count := int(*response.Response.TotalCount)
-	var DiskListAll []*zec.DiskInfo = make([]*zec.DiskInfo, count)
+	//使用 append 动态累积，避免分页期间资源数量变化导致固定下标越界或残留 nil
+	var DiskListAll []*zec.DiskInfo
 
 	//如果需要分页
 	if count > *request.PageSize {
@@ -744,39 +699,29 @@ func (cm *zecCloudManager) FindVolumeByName(volName string, zoneID string, sizeG
 		//从第一页开始遍历
 		var firstpage int = 1
 		request.PageNum = &firstpage
-		var end int = 0
 		for ra := 0; ra < apicallnum; ra++ {
 			response, err := cm.zecClient.DescribeDisks(request)
-			if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-				if err != nil {
-					klog.Errorf("%s API ERROR, error[%v], volName[%s]", ERRORLOG, err.Error(), volName)
-					return nil, err
-				}
-			} else if err != nil {
+			if err != nil {
 				klog.Errorf("%s API ERROR, error[%v], volName[%s]", ERRORLOG, err.Error(), volName)
 				return nil, err
 			}
-			klog.Infof("%s Traversal once,sum count[%d], pagenum[%d], pagesize[%d], rsp count[%d]", INFOLOG, count, request.PageNum, request.PageSize, len(response.Response.DataSet))
-			*request.PageNum++
-			for i := 0; i < len(response.Response.DataSet); i++ {
-				DiskListAll[i+end] = response.Response.DataSet[i]
+			if response.Response == nil {
+				return nil, errors.New(ERRORLOG + " nil response. volName=" + volName)
 			}
-			end += len(response.Response.DataSet)
+			klog.Infof("%s Traversal once,sum count[%d], pagenum[%d], pagesize[%d], rsp count[%d]", INFOLOG, count, *request.PageNum, *request.PageSize, len(response.Response.DataSet))
+			*request.PageNum++
+			DiskListAll = append(DiskListAll, response.Response.DataSet...)
 		}
 
 	} else { //如果小于等于pagesize不需要分页,直接用第一个请求赋值
-		for i := 0; i < count; i++ {
-			DiskListAll[i] = response.Response.DataSet[i]
+		DiskListAll = append(DiskListAll, response.Response.DataSet...)
+	}
+
+	zecVolInfos := make([]*ZecVolume, len(DiskListAll))
+	for c := 0; c < len(DiskListAll); c++ {
+		if DiskListAll[c] == nil {
+			continue
 		}
-	}
-
-	if len(DiskListAll) != count {
-		klog.Errorf("%s API ERROR, Find DiskListAll len[%d] not equal to response.TotalCount[%d]", ERRORLOG, len(DiskListAll), count)
-		return nil, fmt.Errorf("%s API ERROR, Find DiskListAll len[%d] not equal to response.TotalCount[%d]", ERRORLOG, len(DiskListAll), count)
-	}
-
-	zecVolInfos := make([]*ZecVolume, count)
-	for c := 0; c < count; c++ {
 		zecVolInfo := NewZecVolume()
 		if DiskListAll[c].DiskId != nil {
 			zecVolInfo.ZecVolume_Id = *DiskListAll[c].DiskId
@@ -924,16 +869,11 @@ func (cm *zecCloudManager) FindInstance(vmid string) (*ZecVm, error) {
 	request.InstanceIds = append(request.InstanceIds, vmid)
 
 	response, err := cm.zecClient.DescribeInstances(request)
-	if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-		if err != nil {
-			klog.Errorf("%s API ERROR, error[%v], vmid[%s]", ERRORLOG, err.Error(), vmid)
-			return nil, err
-		}
-	} else if err != nil {
+	if err != nil {
 		klog.Errorf("%s API ERROR, error[%v], vmid[%s]", ERRORLOG, err.Error(), vmid)
 		return nil, err
 	}
-	if response.Response.TotalCount == nil || response.Response == nil {
+	if response.Response == nil || response.Response.TotalCount == nil {
 		return nil, errors.New(ERRORLOG + " nil response. vmid=" + vmid)
 	}
 
@@ -943,7 +883,7 @@ func (cm *zecCloudManager) FindInstance(vmid string) (*ZecVm, error) {
 	if *response.Response.TotalCount != 1 {
 		return nil, errors.New(ERRORLOG + "Vmid Repeat, vmid=" + vmid)
 	}
-	if response.Response.DataSet[0] == nil {
+	if len(response.Response.DataSet) == 0 || response.Response.DataSet[0] == nil {
 		return nil, errors.New(ERRORLOG + " nil response. vmid=" + vmid)
 	}
 
@@ -1011,17 +951,11 @@ func (cm *zecCloudManager) GetZone(zoneId string) error {
 
 	request := zec.NewDescribeZonesRequest()
 
-	response, err := cm.zecClient.DescribeZones(request)
-	if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-		if err != nil {
-			klog.Errorf("%s API ERROR, error[%v], zoneId[%s]", ERRORLOG, err.Error(), zoneId)
-			return err
-		}
-	} else if err != nil {
+	_, err := cm.zecClient.DescribeZones(request)
+	if err != nil {
 		klog.Errorf("%s API ERROR, error[%v], zoneId[%s]", ERRORLOG, err.Error(), zoneId)
 		return err
 	}
-	_ = response
 	return nil
 }
 
@@ -1081,16 +1015,11 @@ func (cm *zecCloudManager) GetVmStatus(vmId string) (exist bool, status string, 
 	request.InstanceIds = append(request.InstanceIds, vmId)
 
 	response, err := cm.zecClient.DescribeInstancesStatus(request)
-	if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-		if err != nil {
-			klog.Errorf("%s API ERROR, error[%v], vmId[%s]", ERRORLOG, err.Error(), vmId)
-			return false, "", err
-		}
-	} else if err != nil {
+	if err != nil {
 		klog.Errorf("%s API ERROR, error[%v], vmId[%s]", ERRORLOG, err.Error(), vmId)
 		return false, "", err
 	}
-	if response.Response.TotalCount == nil || response.Response == nil {
+	if response.Response == nil || response.Response.TotalCount == nil {
 		return false, "", errors.New(ERRORLOG + " nil response. vmid=" + vmId)
 	}
 
@@ -1101,7 +1030,7 @@ func (cm *zecCloudManager) GetVmStatus(vmId string) (exist bool, status string, 
 	if *response.Response.TotalCount != 1 {
 		return false, "", errors.New(ERRORLOG + "VmId repeat. vmid=" + vmId)
 	}
-	if response.Response.DataSet[0].InstanceStatus == nil {
+	if len(response.Response.DataSet) == 0 || response.Response.DataSet[0] == nil || response.Response.DataSet[0].InstanceStatus == nil {
 		return false, "", errors.New(ERRORLOG + " nil response. vmid=" + vmId)
 	}
 
@@ -1145,7 +1074,6 @@ func (cm *zecCloudManager) CreateSnapshot(snapshotName string, resourceId string
 	klog.Info(funcInfo)
 	defer klog.Info(csicommon.ExitFunction(funcName, hash))
 	ERRORLOG := "ERROR:" + funcName + hash + " "
-	INFOLOG := "INFO:" + funcName + hash + " "
 
 	if snapshotName == "" || resourceId == "" {
 		return "", errors.New(ERRORLOG + "error args" + ",snapshotName=" + snapshotName + ",resourceId=" + resourceId)
@@ -1156,17 +1084,12 @@ func (cm *zecCloudManager) CreateSnapshot(snapshotName string, resourceId string
 	request.SnapshotName = &snapshotName
 
 	response, err := cm.zecClient.CreateSnapshot(request)
-	if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-		if err != nil {
-			klog.Errorf("%s API ERROR, error[%v], snapshotName[%s], resourcevolId[%s]", ERRORLOG, err.Error(), snapshotName, resourceId)
-			return "", err
-		}
-	} else if err != nil {
+	if err != nil {
 		klog.Errorf("%s API ERROR, error[%v], snapshotName[%s], resourcevolId[%s]", ERRORLOG, err.Error(), snapshotName, resourceId)
 		return "", err
 	}
 
-	if response.Response.SnapshotId == nil {
+	if response.Response == nil || response.Response.SnapshotId == nil {
 		return "", errors.New(ERRORLOG + " nil response. snapshotName=" + snapshotName)
 	}
 
@@ -1176,7 +1099,6 @@ func (cm *zecCloudManager) CreateSnapshot(snapshotName string, resourceId string
 		return "", err
 	}
 
-	_ = INFOLOG
 	return snapshotId, nil
 }
 
@@ -1237,6 +1159,9 @@ func (cm *zecCloudManager) DeleteSnapshot(snapshotId string) (err error) {
 		return err
 	}
 
+	if response.Response == nil {
+		return errors.New(ERRORLOG + " nil response. snapshotId=" + snapshotId)
+	}
 	if len(response.Response.SnapshotIds) != 0 {
 		klog.Errorf("%s API ERROR, delete snap fail, snapshotId[%s]", ERRORLOG, snapshotId)
 		return fmt.Errorf("%s API ERROR, DeleteSnapshots response fail snapIds is not nil, req snapshotId[%s], response fail snapshotId[%v]", ERRORLOG, snapshotId, response.Response.SnapshotIds)
@@ -1246,7 +1171,6 @@ func (cm *zecCloudManager) DeleteSnapshot(snapshotId string) (err error) {
 		return err
 	}
 
-	_ = response
 	return nil
 }
 
@@ -1310,7 +1234,6 @@ func (cm *zecCloudManager) FindSnapshot(snapshotId string) (*ZecVolumeSnap, erro
 	klog.Info(funcInfo)
 	defer klog.Info(csicommon.ExitFunction(funcName, hash))
 	ERRORLOG := "ERROR:" + funcName + hash + " "
-	INFOLOG := "INFO:" + funcName + hash + " "
 
 	if snapshotId == "" {
 		return nil, errors.New(ERRORLOG + "error args" + ",snapshotId=" + snapshotId)
@@ -1320,12 +1243,7 @@ func (cm *zecCloudManager) FindSnapshot(snapshotId string) (*ZecVolumeSnap, erro
 	request.SnapshotIds = append(request.SnapshotIds, snapshotId)
 
 	response, err := cm.zecClient.DescribeSnapshots(request)
-	if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-		if err != nil {
-			klog.Errorf("%s API ERROR, error[%v], snapshotId[%s]", ERRORLOG, err.Error(), snapshotId)
-			return nil, err
-		}
-	} else if err != nil {
+	if err != nil {
 		klog.Errorf("%s API ERROR, error[%v], snapshotId[%s]", ERRORLOG, err.Error(), snapshotId)
 		return nil, err
 	}
@@ -1342,7 +1260,7 @@ func (cm *zecCloudManager) FindSnapshot(snapshotId string) (*ZecVolumeSnap, erro
 	}
 
 	snapinfo := NewZecVolumeSnap()
-	if response.Response.DataSet[0] == nil {
+	if len(response.Response.DataSet) == 0 || response.Response.DataSet[0] == nil {
 		return nil, errors.New(ERRORLOG + " nil response. snapshotId=" + snapshotId)
 	}
 
@@ -1364,14 +1282,13 @@ func (cm *zecCloudManager) FindSnapshot(snapshotId string) (*ZecVolumeSnap, erro
 	if response.Response.DataSet[0].ZoneId != nil {
 		snapinfo.ZecVolumeSnap_ZoneId = *(response.Response.DataSet[0].ZoneId)
 	}
-	if response.Response.DataSet[0].ResourceGroup.ResourceGroupId != nil {
+	if response.Response.DataSet[0].ResourceGroup != nil && response.Response.DataSet[0].ResourceGroup.ResourceGroupId != nil {
 		snapinfo.ZecVolumeSnap_ResourceGroupId = *(response.Response.DataSet[0].ResourceGroup.ResourceGroupId)
 	}
 	if response.Response.DataSet[0].CreateTime != nil {
 		snapinfo.ZecVolumeSnap_CreateTime = *(response.Response.DataSet[0].CreateTime)
 	}
 
-	_ = INFOLOG
 	return snapinfo, nil
 }
 
@@ -1398,12 +1315,7 @@ func (cm *zecCloudManager) FindSnapshotByName(snapshotName string, srcVolId stri
 	request.PageNum = &pagenum
 
 	response, err := cm.zecClient.DescribeSnapshots(request)
-	if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-		if err != nil {
-			klog.Errorf("%s API ERROR, error[%v], snapshotName[%s]", ERRORLOG, err.Error(), snapshotName)
-			return nil, err
-		}
-	} else if err != nil {
+	if err != nil {
 		klog.Errorf("%s API ERROR, error[%v], snapshotName[%s]", ERRORLOG, err.Error(), snapshotName)
 		return nil, err
 	}
@@ -1417,7 +1329,8 @@ func (cm *zecCloudManager) FindSnapshotByName(snapshotName string, srcVolId stri
 
 	//分页处理
 	count := *response.Response.TotalCount
-	var SnapListAll []*zec.SnapshotInfo = make([]*zec.SnapshotInfo, count)
+	//使用 append 动态累积，避免分页期间资源数量变化导致固定下标越界或残留 nil
+	var SnapListAll []*zec.SnapshotInfo
 
 	//如果需要分页
 	if count > *request.PageSize {
@@ -1429,38 +1342,28 @@ func (cm *zecCloudManager) FindSnapshotByName(snapshotName string, srcVolId stri
 		//从第一页开始遍历
 		var firstpage int = 1
 		request.PageNum = &firstpage
-		var end int = 0
 		for ra := 0; ra < apicallnum; ra++ {
 			response, err := cm.zecClient.DescribeSnapshots(request)
-			if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-				if err != nil {
-					klog.Errorf("%s API ERROR, error[%v], snapshotName[%s]", ERRORLOG, err.Error(), snapshotName)
-					return nil, err
-				}
-			} else if err != nil {
+			if err != nil {
 				klog.Errorf("%s API ERROR, error[%v], snapshotName[%s]", ERRORLOG, err.Error(), snapshotName)
 				return nil, err
 			}
-			klog.Infof("%s Traversal once,sum count[%d], pagenum[%d], pagesize[%d], rsp count[%d]", INFOLOG, count, request.PageNum, request.PageSize, len(response.Response.DataSet))
-			*request.PageNum++
-			for i := 0; i < len(response.Response.DataSet); i++ {
-				SnapListAll[i+end] = response.Response.DataSet[i]
+			if response.Response == nil {
+				return nil, errors.New(ERRORLOG + " nil response. snapshotName=" + snapshotName)
 			}
-			end += len(response.Response.DataSet)
+			klog.Infof("%s Traversal once,sum count[%d], pagenum[%d], pagesize[%d], rsp count[%d]", INFOLOG, count, *request.PageNum, *request.PageSize, len(response.Response.DataSet))
+			*request.PageNum++
+			SnapListAll = append(SnapListAll, response.Response.DataSet...)
 		}
 	} else { //不需要分页
-		for i := 0; i < count; i++ {
-			SnapListAll[i] = response.Response.DataSet[i]
+		SnapListAll = append(SnapListAll, response.Response.DataSet...)
+	}
+
+	zecSnapInfos := make([]*ZecVolumeSnap, len(SnapListAll))
+	for c := 0; c < len(SnapListAll); c++ {
+		if SnapListAll[c] == nil {
+			continue
 		}
-	}
-
-	if len(SnapListAll) != count {
-		klog.Errorf("%s API ERROR, Find SnapListAll len[%d] not equal to response.TotalCount[%d]", ERRORLOG, len(SnapListAll), count)
-		return nil, fmt.Errorf("%s API ERROR, Find SnapListAll len[%d] not equal to response.TotalCount[%d]", ERRORLOG, len(SnapListAll), count)
-	}
-
-	zecSnapInfos := make([]*ZecVolumeSnap, count)
-	for c := 0; c < count; c++ {
 		snapinfo := NewZecVolumeSnap()
 		if SnapListAll[c].SnapshotId != nil {
 			snapinfo.ZecVolumeSnap_Id = *SnapListAll[c].SnapshotId
@@ -1480,7 +1383,7 @@ func (cm *zecCloudManager) FindSnapshotByName(snapshotName string, srcVolId stri
 		if SnapListAll[c].ZoneId != nil {
 			snapinfo.ZecVolumeSnap_ZoneId = *SnapListAll[c].ZoneId
 		}
-		if SnapListAll[c].ResourceGroup.ResourceGroupId != nil {
+		if SnapListAll[c].ResourceGroup != nil && SnapListAll[c].ResourceGroup.ResourceGroupId != nil {
 			snapinfo.ZecVolumeSnap_ResourceGroupId = *SnapListAll[c].ResourceGroup.ResourceGroupId
 		}
 		if SnapListAll[c].CreateTime != nil {
@@ -1528,16 +1431,11 @@ func (cm *zecCloudManager) waitDiskStatus(status string, volId string) (err erro
 		job := func() (stop bool, err error) {
 			//ignore PageNum
 			response, err := cm.zecClient.DescribeDisks(request)
-			if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-				if err != nil {
-					klog.Errorf("%s API ERROR, error[%v], volId[%s]", ERRORLOG, err.Error(), volId)
-					return true, err
-				}
-			} else if err != nil {
+			if err != nil {
 				klog.Errorf("%s API ERROR, error[%v], volId[%s]", ERRORLOG, err.Error(), volId)
 				return true, err
 			}
-			if response.Response.TotalCount == nil || response.Response.DataSet[0].DiskStatus == nil {
+			if response.Response == nil || response.Response.TotalCount == nil || len(response.Response.DataSet) == 0 || response.Response.DataSet[0] == nil || response.Response.DataSet[0].DiskStatus == nil {
 				return true, errors.New(ERRORLOG + " nil response.volid=" + volId)
 			}
 
@@ -1558,16 +1456,11 @@ func (cm *zecCloudManager) waitDiskStatus(status string, volId string) (err erro
 		job := func() (stop bool, err error) {
 			//ignore PageNum
 			response, err := cm.zecClient.DescribeDisks(request)
-			if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-				if err != nil {
-					klog.Errorf("%s API ERROR, error[%v], volId[%s]", ERRORLOG, err.Error(), volId)
-					return true, err
-				}
-			} else if err != nil {
+			if err != nil {
 				klog.Errorf("%s API ERROR, error[%v], volId[%s]", ERRORLOG, err.Error(), volId)
 				return true, err
 			}
-			if response.Response.TotalCount == nil {
+			if response.Response == nil || response.Response.TotalCount == nil {
 				return true, errors.New(ERRORLOG + " nil response.volid=" + volId)
 			}
 
@@ -1586,16 +1479,11 @@ func (cm *zecCloudManager) waitDiskStatus(status string, volId string) (err erro
 		job := func() (stop bool, err error) {
 			//ignore PageNum
 			response, err := cm.zecClient.DescribeDisks(request)
-			if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-				if err != nil {
-					klog.Errorf("%s API ERROR, error[%v], volId[%s]", ERRORLOG, err.Error(), volId)
-					return true, err
-				}
-			} else if err != nil {
+			if err != nil {
 				klog.Errorf("%s API ERROR, error[%v], volId[%s]", ERRORLOG, err.Error(), volId)
 				return true, err
 			}
-			if response.Response.TotalCount == nil || response.Response.DataSet[0].DiskStatus == nil {
+			if response.Response == nil || response.Response.TotalCount == nil || len(response.Response.DataSet) == 0 || response.Response.DataSet[0] == nil || response.Response.DataSet[0].DiskStatus == nil {
 				return true, errors.New(ERRORLOG + " nil response.volid=" + volId)
 			}
 
@@ -1617,16 +1505,11 @@ func (cm *zecCloudManager) waitDiskStatus(status string, volId string) (err erro
 		job := func() (stop bool, err error) {
 			//ignore PageNum
 			response, err := cm.zecClient.DescribeDisks(request)
-			if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-				if err != nil {
-					klog.Errorf("%s API ERROR, error[%v], volId[%s]", ERRORLOG, err.Error(), volId)
-					return true, err
-				}
-			} else if err != nil {
+			if err != nil {
 				klog.Errorf("%s API ERROR, error[%v], volId[%s]", ERRORLOG, err.Error(), volId)
 				return true, err
 			}
-			if response.Response.TotalCount == nil || response.Response.DataSet[0].DiskStatus == nil {
+			if response.Response == nil || response.Response.TotalCount == nil || len(response.Response.DataSet) == 0 || response.Response.DataSet[0] == nil || response.Response.DataSet[0].DiskStatus == nil {
 				return true, errors.New(ERRORLOG + " nil response.volid=" + volId)
 			}
 
@@ -1676,16 +1559,11 @@ func (cm *zecCloudManager) waitDiskSnapStatus(status string, snapshotId string) 
 		job := func() (stop bool, err error) {
 			//ignore PageNum
 			response, err := cm.zecClient.DescribeSnapshots(request)
-			if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-				if err != nil {
-					klog.Errorf("%s API ERROR, error[%v], snapshotId[%s]", ERRORLOG, err.Error(), snapshotId)
-					return true, err
-				}
-			} else if err != nil {
+			if err != nil {
 				klog.Errorf("%s API ERROR, error[%v], snapshotId[%s]", ERRORLOG, err.Error(), snapshotId)
 				return true, err
 			}
-			if response.Response.TotalCount == nil || response.Response.DataSet[0].Status == nil {
+			if response.Response == nil || response.Response.TotalCount == nil || len(response.Response.DataSet) == 0 || response.Response.DataSet[0] == nil || response.Response.DataSet[0].Status == nil {
 				return true, errors.New(ERRORLOG + " nil response.snapid=" + snapshotId)
 			}
 
@@ -1706,16 +1584,11 @@ func (cm *zecCloudManager) waitDiskSnapStatus(status string, snapshotId string) 
 		job := func() (stop bool, err error) {
 			//ignore PageNum
 			response, err := cm.zecClient.DescribeSnapshots(request)
-			if _, ok := err.(*common.ZenlayerCloudSdkError); ok {
-				if err != nil {
-					klog.Errorf("%s API ERROR, error[%v], snapshotId[%s]", ERRORLOG, err.Error(), snapshotId)
-					return true, err
-				}
-			} else if err != nil {
+			if err != nil {
 				klog.Errorf("%s API ERROR, error[%v], snapshotId[%s]", ERRORLOG, err.Error(), snapshotId)
 				return true, err
 			}
-			if response.Response.TotalCount == nil {
+			if response.Response == nil || response.Response.TotalCount == nil {
 				return true, errors.New(ERRORLOG + " nil response.snapid=" + snapshotId)
 			}
 
@@ -1741,11 +1614,7 @@ func (cm *zecCloudManager) CloneVolume() (err error) {
 	funcInfo, hash := csicommon.EntryFunction(funcName)
 	klog.Info(funcInfo)
 	defer klog.Info(csicommon.ExitFunction(funcName, hash))
-	ERRORLOG := "ERROR:" + funcName + hash + " "
-	INFOLOG := "INFO:" + funcName + hash + " "
 
-	_ = ERRORLOG
-	_ = INFOLOG
 	return nil
 }
 
@@ -1757,11 +1626,7 @@ func (cm *zecCloudManager) FindTag() (err error) {
 	funcInfo, hash := csicommon.EntryFunction(funcName)
 	klog.Info(funcInfo)
 	defer klog.Info(csicommon.ExitFunction(funcName, hash))
-	ERRORLOG := "ERROR:" + funcName + hash + " "
-	INFOLOG := "INFO:" + funcName + hash + " "
 
-	_ = ERRORLOG
-	_ = INFOLOG
 	return nil
 }
 
@@ -1773,11 +1638,7 @@ func (cm *zecCloudManager) IsValidTags() bool {
 	funcInfo, hash := csicommon.EntryFunction(funcName)
 	klog.Info(funcInfo)
 	defer klog.Info(csicommon.ExitFunction(funcName, hash))
-	ERRORLOG := "ERROR:" + funcName + hash + " "
-	INFOLOG := "INFO:" + funcName + hash + " "
 
-	_ = ERRORLOG
-	_ = INFOLOG
 	return false
 }
 
@@ -1789,10 +1650,6 @@ func (cm *zecCloudManager) AttachTags() (err error) {
 	funcInfo, hash := csicommon.EntryFunction(funcName)
 	klog.Info(funcInfo)
 	defer klog.Info(csicommon.ExitFunction(funcName, hash))
-	ERRORLOG := "ERROR:" + funcName + hash + " "
-	INFOLOG := "INFO:" + funcName + hash + " "
 
-	_ = ERRORLOG
-	_ = INFOLOG
 	return nil
 }

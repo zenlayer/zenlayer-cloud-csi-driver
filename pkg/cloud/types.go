@@ -33,7 +33,7 @@ IMAGING				镜像制作中。
 RESIZING			变更规格大小中。
 */
 const (
-	VmStatusRunning      string = "RUNNING"
+	VmStatusRunning string = "RUNNING"
 )
 
 /*
@@ -54,10 +54,10 @@ DELETED				csi定义状态 已经删除
 STABLE				csi定义状态 稳定状态available或者in_use
 */
 const (
-	DiskStatusInUse            string = "IN_USE"
-	DiskStatusAvailable        string = "AVAILABLE"
-	DiskStatusDeleted          string = "DELETED"
-	DiskStatusStable           string = "STABLE"
+	DiskStatusInUse     string = "IN_USE"
+	DiskStatusAvailable string = "AVAILABLE"
+	DiskStatusDeleted   string = "DELETED"
+	DiskStatusStable    string = "STABLE"
 )
 
 /*
@@ -70,8 +70,8 @@ DELETING			释放中。
 DELETED				csi定义状态 已经删除
 */
 const (
-	SnapStatusAvailable   string = "AVAILABLE"
-	SnapStatusDeleted     string = "DELETED"
+	SnapStatusAvailable string = "AVAILABLE"
+	SnapStatusDeleted   string = "DELETED"
 )
 
 /*disk info*/

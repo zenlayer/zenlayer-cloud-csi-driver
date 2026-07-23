@@ -51,7 +51,6 @@ func (is *IdentityServer) Probe(ctx context.Context, req *csi.ProbeRequest) (*cs
 	defer klog.Info(common.ExitFunction(funcName, hash))
 
 	var ready bool = true
-	var err error = nil
 	if !is.cloud.IsController() {
 		klog.Infof("IdentityServer:Probe: Node driver Probe")
 	} else {
@@ -66,7 +65,7 @@ func (is *IdentityServer) Probe(ctx context.Context, req *csi.ProbeRequest) (*cs
 
 	return &csi.ProbeResponse{
 		Ready: &wrappers.BoolValue{Value: ready},
-	}, err
+	}, nil
 }
 
 /*

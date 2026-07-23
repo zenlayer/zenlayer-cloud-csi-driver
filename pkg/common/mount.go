@@ -81,7 +81,7 @@ func FormatAndMount(diskMounter *k8smount.SafeFormatAndMount, source string, tar
 
 	// check device fs
 	mountOptions = append(mountOptions, "defaults")
-	if !readOnly || !omitFsCheck {
+	if !readOnly && !omitFsCheck {
 		// Run fsck on the disk to fix repairable issues, only do this for volumes requested as rw.
 		args := []string{"-a", source}
 

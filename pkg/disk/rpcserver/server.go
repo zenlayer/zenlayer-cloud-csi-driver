@@ -117,8 +117,11 @@ func (s *nonBlockingGRPCServer) serve(endpoint string, servers Servers) {
 
 	klog.Infof("Listening for connections on address[%#v]", listener.Addr())
 
-	err = server.Serve(listener)
-	klog.Errorf("%s", err.Error())
+	if err = server.Serve(listener); err != nil {
+		klog.Errorf("grpc server serve exited with error[%v]", err)
+	} else {
+		klog.Infof("grpc server stopped")
+	}
 }
 
 func logGRPC(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {

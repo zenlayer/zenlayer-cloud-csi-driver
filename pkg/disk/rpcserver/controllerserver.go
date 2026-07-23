@@ -18,7 +18,6 @@ package rpcserver
 
 import (
 	"fmt"
-	"reflect"
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -28,6 +27,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	"k8s.io/klog"
 )
@@ -111,8 +111,11 @@ func (cs *ControllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		klog.Infof("%s GetAccessibilityRequirements has val. volName[%s]", INFOLOG, volName)
 		var err error
 		topo, err = cs.PickTopology(req.GetAccessibilityRequirements())
-		if err != nil || topo == nil {
+		if err != nil {
 			return nil, status.Error(codes.InvalidArgument, ERRORLOG+err.Error())
+		}
+		if topo == nil {
+			return nil, status.Errorf(codes.InvalidArgument, "%s cannot pick topology from accessibility requirements, volname[%s]", ERRORLOG, volName)
 		}
 		//这里需要将req.Parameters中的zoneID修改成topo.ZoneID,req是从storageclass.yaml中取的，如果是WaitForFirstConsumer模式走进这个分支storageclass中定义的zone不一定是这个vol选择的zone
 		driver.UpdateParmsZone(req.GetParameters(), topo.GetZone())
@@ -336,7 +339,7 @@ func (cs *ControllerServer) ControllerPublishVolume(ctx context.Context, req *cs
 	ERRORLOG := "ERROR:" + funcName + hash + " "
 	INFOLOG := "INFO:" + funcName + hash + " "
 
-	if isValid := cs.driver.ValidateControllerServiceRequest(csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME); !isValid {
+	if isValid := cs.driver.ValidateControllerServiceRequest(csi.ControllerServiceCapability_RPC_PUBLISH_UNPUBLISH_VOLUME); !isValid {
 		klog.Errorf("%s Invalid publish volume req[%v]", ERRORLOG, req)
 		return nil, status.Error(codes.Unimplemented, "Invalid publish volume req")
 	}
@@ -402,10 +405,6 @@ func (cs *ControllerServer) ControllerPublishVolume(ctx context.Context, req *cs
 		}
 	}
 
-	if req.GetVolumeCapability() == nil {
-		return nil, status.Error(codes.InvalidArgument, ERRORLOG+"Volume capability missing in request")
-	}
-
 	klog.Infof("%s Will to Publish volumeid[%s], vmid[%s]", INFOLOG, volId, vmId)
 	err = cs.cloud.AttachVolume(volId, vmId)
 	if err != nil {
@@ -421,11 +420,10 @@ func (cs *ControllerServer) ControllerPublishVolume(ctx context.Context, req *cs
 	}
 	if newVolInfo.ZecVolume_InstanceId != vmId {
 		klog.Errorf("%s after attach volume, volume info vmid error, need vmid[%s], volinfo.vmid[%s], will detach vol[%s]", ERRORLOG, vmId, newVolInfo.ZecVolume_InstanceId, volId)
-		err = cs.cloud.DetachVolume(volId)
-		if err != nil {
-			klog.Errorf("%s revert attach action error[%v], volid[%s], need vmid[%s]", ERRORLOG, err.Error(), volId, vmId)
+		if derr := cs.cloud.DetachVolume(volId); derr != nil {
+			klog.Errorf("%s revert attach action error[%v], volid[%s], need vmid[%s]", ERRORLOG, derr.Error(), volId, vmId)
 		}
-		return nil, status.Error(codes.Internal, ERRORLOG+err.Error()+volId+vmId)
+		return nil, status.Errorf(codes.Internal, "%s after attach, volume[%s] not attached to expected vm[%s], actual vm[%s]", ERRORLOG, volId, vmId, newVolInfo.ZecVolume_InstanceId)
 	}
 	klog.Infof("%s Succeed to Publish volumeid[%s], vmid[%s]", INFOLOG, volId, vmId)
 
@@ -485,15 +483,14 @@ func (cs *ControllerServer) ControllerUnpublishVolume(ctx context.Context, req *
 		return &csi.ControllerUnpublishVolumeResponse{}, nil
 	}
 
-	vmexist, vmstatus, err := cs.cloud.GetVmStatus(vmId)
-	if err != nil {
-		return nil, status.Error(codes.Internal, ERRORLOG+"GetVmstatus return err"+err.Error()+vmId)
-	}
-	if !vmexist {
-		return nil, status.Error(codes.NotFound, ERRORLOG+"Vm not exist"+vmId)
-	}
-	if vmstatus != cloud.VmStatusRunning {
-		return nil, status.Error(codes.Internal, ERRORLOG+"Vm status not running"+vmId)
+	// 卷已挂载在某实例上。若其实际挂载的实例与请求卸载的 node 不一致，
+	// 说明卷并未挂在该 node 上，按 CSI 幂等语义直接返回成功（含 node 已被删除的场景）。
+	// 这里不再查询 VM 是否存在/是否 running：
+	//   - 底层 DetachVolume 使用 InstanceCheckFlag=false，允许对关机/非 running 实例卸载；
+	//   - node 不存在时按幂等应返回成功，而非 NotFound，否则会阻塞卷卸载与 Pod 重新调度。
+	if exVol.ZecVolume_InstanceId != vmId {
+		klog.Warningf("%s Volume[%s] attached to instance[%s], not the req node[%s], treat detach as done (idempotent)", INFOLOG, volId, exVol.ZecVolume_InstanceId, vmId)
+		return &csi.ControllerUnpublishVolumeResponse{}, nil
 	}
 
 	// do detach
@@ -508,6 +505,7 @@ func (cs *ControllerServer) ControllerUnpublishVolume(ctx context.Context, req *
 		cs.detachLimiter.Add(volId)
 		return nil, status.Error(codes.Internal, err.Error()+volId)
 	}
+	cs.detachLimiter.Reset(volId)
 	klog.Infof("%s Succeed to UnPublish volume[%s], vm[%s]", INFOLOG, volId, vmId)
 
 	return &csi.ControllerUnpublishVolumeResponse{}, nil
@@ -580,11 +578,10 @@ func (cs *ControllerServer) ControllerExpandVolume(ctx context.Context, req *csi
 
 	klog.Infof("%s Will to Resize volume[%s], ExpandVolume get args requireSize[%d], currentSize[%d]", INFOLOG, volId, requiredSizeBytes, exVolSizeBytes)
 
-	if requiredSizeBytes%common.Gib != 0 {
-		return nil, status.Errorf(codes.OutOfRange, "%s required size bytes[%d] cannot be divided into Gib[%d], volId[%s]", ERRORLOG, requiredSizeBytes, common.Gib, volId)
-	}
-
-	requiredSizeGib := int(requiredSizeBytes / common.Gib)
+	// 向上取整到整数 GiB（与 CreateVolume 的 ByteCeilToGib 行为一致），
+	// 避免用户写 20G / 1.5Gi 这类非 Gib 整数倍时扩容被拒。
+	requiredSizeGib := common.ByteCeilToGib(requiredSizeBytes)
+	actualSizeBytes := common.GibToByte(requiredSizeGib)
 
 	if err = cs.cloud.ResizeVolume(volId, requiredSizeGib); err != nil {
 		klog.Errorf("%s Failed to resize volume[%s], error[%v]", ERRORLOG, volId, err)
@@ -593,7 +590,7 @@ func (cs *ControllerServer) ControllerExpandVolume(ctx context.Context, req *csi
 	klog.Infof("%s Succeed to Resize volume[%s] to size[%d]", INFOLOG, volId, requiredSizeGib)
 
 	return &csi.ControllerExpandVolumeResponse{
-		CapacityBytes:         requiredSizeBytes,
+		CapacityBytes:         actualSizeBytes,
 		NodeExpansionRequired: nodeExpansionRequired,
 	}, nil
 }
@@ -698,11 +695,11 @@ func (cs *ControllerServer) CreateSnapshot(ctx context.Context, req *csi.CreateS
 		}
 	}
 
-	sc, err := driver.NewZecSnapshotClassFromMap(req.GetParameters())
-	if err != nil {
+	// Parse (and validate) the snapshot class parameters. The resulting config
+	// is not consumed yet, so the value is intentionally discarded.
+	if _, err = driver.NewZecSnapshotClassFromMap(req.GetParameters()); err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	_ = sc
 
 	klog.Infof("%s Will Create a New snapshot name[%s], srcVolId[%s]", INFOLOG, snapName, srcVolId)
 	newSnapId, err := cs.cloud.CreateSnapshot(snapName, srcVolId)
@@ -801,7 +798,6 @@ func (cs *ControllerServer) ValidateVolumeCapabilities(ctx context.Context, req 
 	klog.Info(info)
 	defer klog.Info(common.ExitFunction(funcName, hash))
 	ERRORLOG := "ERROR:" + funcName + hash + " "
-	INFOLOG := "INFO:" + funcName + hash + " "
 
 	if len(req.GetVolumeId()) == 0 {
 		return nil, status.Error(codes.InvalidArgument, ERRORLOG+"No volume id is provided")
@@ -838,7 +834,6 @@ func (cs *ControllerServer) ValidateVolumeCapabilities(ctx context.Context, req 
 			}, status.Error(codes.InvalidArgument, ERRORLOG+"Driver does not support mode:"+c.GetAccessMode().GetMode().String())
 		}
 	}
-	_ = INFOLOG
 	return &csi.ValidateVolumeCapabilitiesResponse{}, nil
 }
 
@@ -911,17 +906,21 @@ func (cs *ControllerServer) IsValidTopology(zecVolInfo *cloud.ZecVolume, require
 		return true
 	}
 	volTops := cs.GetVolumeTopology(zecVolInfo)
-	res := true
+	// The existing volume is compatible when its topology matches any one of the
+	// requisite topologies. If nothing matches (including an empty volTops), the
+	// volume is not in an acceptable topology.
 	for _, reqTop := range requirement.GetRequisite() {
 		for _, volTop := range volTops {
-			if reflect.DeepEqual(reqTop, volTop) {
+			// 用 proto.Equal 做语义比较，而非 reflect.DeepEqual：后者会比较 protobuf
+			// 消息里 Unmarshal 后才填充的内部簿记字段（sizeCache/state 等），导致
+			// 线上收到的 reqTop 与现场构造的 volTop 即使 Segments 相同也判不等，
+			// 进而破坏 CreateVolume 的幂等重试。
+			if proto.Equal(reqTop, volTop) {
 				return true
-			} else {
-				res = false
 			}
 		}
 	}
-	return res
+	return false
 }
 
 func (cs *ControllerServer) GetVolumeTopology(zecVolInfo *cloud.ZecVolume) []*csi.Topology {

@@ -28,8 +28,6 @@ import (
 
 const (
 	StorageClassTypeName     = "type"         //1=basic, 2=standard
-	StorageClassMaxSizeName  = "maxSize"      //cloud disk min size (bytes)
-	StorageClassMinSizeName  = "minSize"      //cloud disk max size (bytes)
 	StorageClassFsTypeName   = "fsType"       //ext3 ext4 xfs
 	StorageClassZoneId       = "zoneID"       //zone
 	StorageClassPlaceGroupID = "placeGroupID" //groupid
@@ -69,8 +67,6 @@ func UpdateParmsZone(opt map[string]string, zoneID string) {
 
 func NewZecStorageClassFromMap(opt map[string]string) (*ZecStorageClass, error) {
 	volType := -1
-	var maxSize int64 = ZEC_MAX_DISK_SIZE_BYTES
-	var minSize int64 = ZEC_MIN_DISK_SIZE_BYTES
 	fsType := "ext4"
 	zoneID := ""
 	placeGroupID := ""
@@ -91,6 +87,10 @@ func NewZecStorageClassFromMap(opt map[string]string) (*ZecStorageClass, error) 
 			placeGroupID = v
 		case strings.ToLower(StorageClassBurstEnable):
 			burstenable = v
+		case strings.ToLower(StorageClassFsTypeName):
+			if v != "" {
+				fsType = v
+			}
 		}
 	}
 	if zoneID == "" || placeGroupID == "" {
@@ -114,13 +114,11 @@ func NewZecStorageClassFromMap(opt map[string]string) (*ZecStorageClass, error) 
 		return nil, fmt.Errorf("unsupported volume type %d", volType)
 	}
 	sc := NewDefaultZecStorageClassFromType(t)
-	if maxSize > 0 && minSize > 0 {
-		err = sc.setTypeSize(maxSize, minSize)
-		if err != nil {
-			return nil, fmt.Errorf("setTypeSize error")
-		}
-	}
 
+	err = sc.setTypeSize(ZEC_MAX_DISK_SIZE_BYTES, ZEC_MIN_DISK_SIZE_BYTES)
+	if err != nil {
+		return nil, fmt.Errorf("setTypeSize error")
+	}
 	err = sc.setFsType(fsType) //just set, get no use
 	if err != nil {
 		return nil, fmt.Errorf("setFsType error")
@@ -181,7 +179,7 @@ func (sc *ZecStorageClass) setTypeSize(maxSize, minSize int64) error {
 	if maxSize < 0 || minSize <= 0 {
 		return nil
 	}
-	if sc.maxSize < sc.minSize {
+	if maxSize < minSize {
 		return fmt.Errorf("max size must greater than or equal to min size")
 	}
 	sc.maxSize, sc.minSize = maxSize, minSize
@@ -219,14 +217,5 @@ func (sc ZecStorageClass) GetRequiredVolumeSizeByte(capRange *csi.CapacityRange)
 		return res, fmt.Errorf("ERROR:GetRequiredVolumeSizeByte return size error, size=%d", res)
 	}
 
-	/*
-		res = sc.FormatVolumeSizeByte(res)
-		if capRange.GetLimitBytes() > 0 && res > capRange.GetLimitBytes() {
-			return -1, fmt.Errorf("ERROR:GetRequiredVolumeSizeByte volume required bytes %d greater than limit bytes %d", res, capRange.GetLimitBytes())
-		}
-		if res < ZEC_MIN_DISK_SIZE_BYTES || res > ZEC_MAX_DISK_SIZE_BYTES {
-			return -1, fmt.Errorf("ERROR:GetRequiredVolumeSizeByte return size error, size=%d", res)
-		}
-	*/
 	return res, nil
 }
