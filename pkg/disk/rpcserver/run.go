@@ -24,13 +24,13 @@ import (
 )
 
 func Run(driver *driver.DiskDriver, cloud cloud.CloudManager, mounter *k8smount.SafeFormatAndMount,
-	endpoint string, retryTimesMax int, driverType string) {
+	endpoint string, driverType string) {
 
 	var servers Servers
 
 	servers.IdentityServer = NewIdentityServer(driver, cloud)
 	if driverType == common.ControllerDriverType {
-		servers.ControllerServer = NewControllerServer(driver, cloud, retryTimesMax)
+		servers.ControllerServer = NewControllerServer(driver, cloud)
 		if common.MixDriver {
 			servers.NodeServer = NewNodeServer(driver, cloud, mounter)
 		}

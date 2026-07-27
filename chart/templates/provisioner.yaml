@@ -5,7 +5,12 @@ metadata:
   name: csi-zecplugin-provisioner
   namespace: kube-system
 spec:
-  replicas:  {{ .Values.replicaCount }}     
+  replicas:  {{ .Values.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   selector:
     matchLabels:
       app: csi-zecplugin-provisioner
@@ -68,7 +73,16 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-          imagePullPolicy: {{ .Values.pullPolicy}}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          livenessProbe:
+            httpGet:
+              host: localhost
+              path: /healthz
+              port: 29632
+            initialDelaySeconds: 30
+            periodSeconds: 60
+            timeoutSeconds: 15
+            failureThreshold: 8
           resources:
             limits:
               memory: 2100Mi
@@ -93,7 +107,7 @@ spec:
           args:
             - "--csi-address=$(ADDRESS)"
             - "--v=3"
-            - "--timeout=150s"
+            - "--timeout=600s"
             - "--retry-interval-start=500ms"
             - "--retry-interval-max=30m"
             - "--leader-election=true"
@@ -114,7 +128,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-          imagePullPolicy: {{ .Values.pullPolicy}}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
           ports:
             - containerPort: 8090
               name: http-endpoint
@@ -137,7 +151,7 @@ spec:
             - "--retry-interval-start=500ms"
             - "--default-fstype=ext4"
             - "--http-endpoint=$(POD_IP):8093"
-            - "--timeout=60s"
+            - "--timeout=240s"
             - "--kube-api-qps=100"
             - "--kube-api-burst=200"
             - "--worker-threads=4"
@@ -148,7 +162,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-          imagePullPolicy: {{ .Values.pullPolicy}}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
           ports:
             - containerPort: 8093
               name: http-endpoint
@@ -167,7 +181,7 @@ spec:
           args:
             - "--csi-address=$(ADDRESS)"
             - "--v=3"
-            - "--timeout=150s"
+            - "--timeout=240s"
             - "--leader-election=true"
             - "--leader-election-namespace=kube-system"
             - "--retry-interval-start=500ms"
@@ -181,7 +195,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-          imagePullPolicy: {{ .Values.pullPolicy}}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
           ports:
             - containerPort: 8091
               name: http-endpoint
@@ -200,7 +214,7 @@ spec:
           args:
             - "--csi-address=$(ADDRESS)"
             - "--v=3"
-            - "--timeout=150s"
+            - "--timeout=240s"
             - "--leader-election=true"
             - "--extra-create-metadata=true"
             - "--http-endpoint=$(POD_IP):8092"
@@ -220,7 +234,7 @@ spec:
             requests:
               cpu: 10m
               memory: 20Mi
-          imagePullPolicy: {{ .Values.pullPolicy}}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
           ports:
             - containerPort: 8092
               name: http-endpoint
@@ -243,7 +257,7 @@ spec:
             requests:
               cpu: 10m
               memory: 20Mi
-          imagePullPolicy: {{ .Values.pullPolicy}}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
         - name: liveness-probe
           image: {{ .Values.images.registry }}{{ .Values.images.livenessProbe.repo }}{{ .Values.images.livenessProbe.tag }}
           args: 
@@ -260,7 +274,7 @@ spec:
             requests:
               cpu: 10m
               memory: 20Mi
-          imagePullPolicy: {{ .Values.pullPolicy}}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
       volumes:
         - name: host-dev
           hostPath:

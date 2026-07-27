@@ -89,7 +89,11 @@ var DefaultPluginCapability = []*csi.PluginCapability{
 	{
 		Type: &csi.PluginCapability_VolumeExpansion_{
 			VolumeExpansion: &csi.PluginCapability_VolumeExpansion{
-				Type: csi.PluginCapability_VolumeExpansion_OFFLINE,
+				// ZEC cloud disk ResizeDisk works while the disk is attached to a
+				// running VM, so expansion of node-published volumes is supported:
+				// ControllerExpandVolume grows the disk, NodeExpandVolume then grows
+				// the filesystem, both without stopping the Pod.
+				Type: csi.PluginCapability_VolumeExpansion_ONLINE,
 			},
 		},
 	},

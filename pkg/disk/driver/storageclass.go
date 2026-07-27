@@ -59,9 +59,12 @@ func NewDefaultZecStorageClassFromType(diskType VolumeType) *ZecStorageClass {
 	}
 }
 
+// UpdateParmsZone 把 storage-class 参数里已有的 zoneID 改写成本次实际选中的 zone。
 func UpdateParmsZone(opt map[string]string, zoneID string) {
-	if _, ok := opt[StorageClassZoneId]; ok {
-		opt[StorageClassZoneId] = zoneID
+	for k := range opt {
+		if strings.EqualFold(k, StorageClassZoneId) {
+			opt[k] = zoneID
+		}
 	}
 }
 
@@ -208,14 +211,50 @@ func (sc ZecStorageClass) FormatVolumeSizeByte(sizeByte int64) int64 {
 	return sizeByte
 }
 
+/*
+GetRequiredVolumeSizeByte 把 CO 给的容量区间换算成云盘实际能创建的字节数。
+
+	返回值保证是"整数 GiB 对齐"的实际容量, 调用方可以直接把它回填到
+	CreateVolumeResponse.Volume.CapacityBytes, 不需要再做一次取整,
+	也不会出现"上报值与云上实际容量不一致"的问题(见 ControllerExpandVolume
+	的同样处理)。
+
+	取整语义:
+	  1. requiredBytes 小于云盘最小规格时向上抬到最小规格(而不是直接报错
+	     OutOfRange —— 否则用户写 10Gi 的 PVC 会永久 Pending)。
+	  2. 再向上取整到整数 GiB, 因为云 API 的 DiskSize 单位就是 GiB。
+	  3. 只有在取整后的容量超出 limitBytes 或超出云盘最大规格时才返回错误,
+	     此时确实无法满足请求。
+
+	limitBytes 必须参与判断: 之前的实现完全忽略它, 会返回一个大于用户上限的容量。
+*/
 func (sc ZecStorageClass) GetRequiredVolumeSizeByte(capRange *csi.CapacityRange) (int64, error) {
 	if capRange == nil {
-		return int64(sc.minSize), nil
-	}
-	res := capRange.GetRequiredBytes()
-	if res < sc.GetMinSizeByte() || res > sc.GetMaxSizeByte() {
-		return res, fmt.Errorf("ERROR:GetRequiredVolumeSizeByte return size error, size=%d", res)
+		return sc.GetMinSizeByte(), nil
 	}
 
-	return res, nil
+	requiredBytes := capRange.GetRequiredBytes()
+	limitBytes := capRange.GetLimitBytes()
+	if requiredBytes < 0 || limitBytes < 0 {
+		return -1, fmt.Errorf("capacity range [%d,%d] should not be less than zero", requiredBytes, limitBytes)
+	}
+	if limitBytes > 0 && requiredBytes > limitBytes {
+		return -1, fmt.Errorf("volume required bytes %d greater than limit bytes %d", requiredBytes, limitBytes)
+	}
+
+	// 向上抬到云盘最小规格, 再向上取整到整数 GiB
+	if requiredBytes < sc.GetMinSizeByte() {
+		requiredBytes = sc.GetMinSizeByte()
+	}
+	actualBytes := common.GibToByte(common.ByteCeilToGib(requiredBytes))
+
+	if actualBytes > sc.GetMaxSizeByte() {
+		return -1, fmt.Errorf("required size %d bytes exceeds max volume size %d bytes", actualBytes, sc.GetMaxSizeByte())
+	}
+	if limitBytes > 0 && actualBytes > limitBytes {
+		return -1, fmt.Errorf("volume size %d bytes (rounded up to whole GiB, min volume size is %d bytes) exceeds limit bytes %d",
+			actualBytes, sc.GetMinSizeByte(), limitBytes)
+	}
+
+	return actualBytes, nil
 }

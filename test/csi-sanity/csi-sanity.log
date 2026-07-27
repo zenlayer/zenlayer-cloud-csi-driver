@@ -1,30 +1,30 @@
 Running Suite: CSI Driver Test Suite - /
 ========================================
-Random Seed: 1759052182
+Random Seed: 1785292421
 
-Will run 91 of 92 specs
-SSSSS••I0928 09:36:41.137493      28 resources.go:301] deleting snapshot ID 1520144882776413800
-I0928 09:36:54.937150      28 resources.go:301] deleting snapshot ID 1520144882776413800
-•I0928 09:38:07.995718      28 resources.go:301] deleting snapshot ID 1520145378668981008
+Will run 95 of 96 specs
+SSSSSS•••••S••••••••••••••••••SSSSSSSSSSSSSSSS••I0729 02:39:08.716627      29 resources.go:306] deleting snapshot ID 1740266497441398856
+I0729 02:39:27.934493      29 resources.go:306] deleting snapshot ID 1740266497441398856
+•I0729 02:40:56.323184      29 resources.go:306] deleting snapshot ID 1740267092680247825
 •
 ------------------------------
-• [FAILED] [32.365 seconds]
+• [FAILED] [29.050 seconds]
 CreateSnapshot [Controller Server] [It] should succeed when creating snapshot with maximum-length name
-/root/test/csi-test-5.3.1/pkg/sanity/controller.go:1450
+/root/csi-test-5.5.0/pkg/sanity/controller.go:1399
 
   Timeline >>
-  STEP: reusing connection to CSI driver at unix:///csi/csi.sock @ 09/28/25 09:38:48.147
-  STEP: reusing connection to CSI driver controller at unix:///csi/csi.sock @ 09/28/25 09:38:48.147
-  STEP: creating mount and staging directories @ 09/28/25 09:38:48.147
-  STEP: creating a volume @ 09/28/25 09:38:48.148
-  STEP: creating a snapshot @ 09/28/25 09:38:58.044
-  [FAILED] in [It] - /root/test/csi-test-5.3.1/pkg/sanity/controller.go:1460 @ 09/28/25 09:38:58.046
+  STEP: reusing connection to CSI driver at unix:///csi/csi.sock @ 07/29/26 02:41:34.757
+  STEP: reusing connection to CSI driver controller at unix:///csi/csi.sock @ 07/29/26 02:41:34.757
+  STEP: creating mount and staging directories @ 07/29/26 02:41:34.757
+  STEP: creating a volume @ 07/29/26 02:41:34.758
+  STEP: creating a snapshot @ 07/29/26 02:41:46.845
+  [FAILED] in [It] - /root/csi-test-5.5.0/pkg/sanity/controller.go:1409 @ 07/29/26 02:41:46.846
   << Timeline
 
   [FAILED] create snapshot failed
   Unexpected error:
-      <*status.Error | 0xc000114468>:
-      rpc error: code = InvalidArgument desc = ERROR:ControllerServer:CreateSnapshot:8e10aa22 snapshot name is longer then 64
+      <*status.Error | 0xc000236028>:
+      rpc error: code = InvalidArgument desc = ERROR:ControllerServer:CreateSnapshot:d844c1a0 snapshot name is longer then 64
       {
           s: {
               s: {
@@ -37,39 +37,39 @@ CreateSnapshot [Controller Server] [It] should succeed when creating snapshot wi
                   sizeCache: 0,
                   unknownFields: nil,
                   Code: 3,
-                  Message: "ERROR:ControllerServer:CreateSnapshot:8e10aa22 snapshot name is longer then 64",
+                  Message: "ERROR:ControllerServer:CreateSnapshot:d844c1a0 snapshot name is longer then 64",
                   Details: nil,
               },
           },
       }
   occurred
-  In [It] at: /root/test/csi-test-5.3.1/pkg/sanity/controller.go:1460 @ 09/28/25 09:38:58.046
+  In [It] at: /root/csi-test-5.5.0/pkg/sanity/controller.go:1409 @ 07/29/26 02:41:46.846
 ------------------------------
-••I0928 09:39:39.135841      28 resources.go:301] deleting snapshot ID 1520146379614456087
-•••••••••••••••••••••••••••SSSSSSSSSSSSSS•SSSS
+••••••••I0729 02:43:37.406948      29 resources.go:306] deleting snapshot ID 1740268762399119120
+••SSSS
 ------------------------------
 P [PENDING]
 Controller Service [Controller Server] ListVolumes pagination should detect volumes added between pages and accept tokens when the last volume from a page is deleted
-/root/test/csi-test-5.3.1/pkg/sanity/controller.go:265
+/root/csi-test-5.5.0/pkg/sanity/controller.go:256
 ------------------------------
 ••••••
 ------------------------------
 • [FAILED] [0.001 seconds]
 Controller Service [Controller Server] CreateVolume [It] should not fail when creating volume with maximum-length name
-/root/test/csi-test-5.3.1/pkg/sanity/controller.go:531
+/root/csi-test-5.5.0/pkg/sanity/controller.go:453
 
   Timeline >>
-  STEP: reusing connection to CSI driver at unix:///csi/csi.sock @ 09/28/25 09:52:18.31
-  STEP: reusing connection to CSI driver controller at unix:///csi/csi.sock @ 09/28/25 09:52:18.31
-  STEP: creating mount and staging directories @ 09/28/25 09:52:18.31
-  STEP: creating a volume @ 09/28/25 09:52:18.311
-  [FAILED] in [It] - /root/test/csi-test-5.3.1/pkg/sanity/controller.go:536 @ 09/28/25 09:52:18.311
+  STEP: reusing connection to CSI driver at unix:///csi/csi.sock @ 07/29/26 02:46:15.633
+  STEP: reusing connection to CSI driver controller at unix:///csi/csi.sock @ 07/29/26 02:46:15.633
+  STEP: creating mount and staging directories @ 07/29/26 02:46:15.633
+  STEP: creating a volume @ 07/29/26 02:46:15.634
+  [FAILED] in [It] - /root/csi-test-5.5.0/pkg/sanity/controller.go:458 @ 07/29/26 02:46:15.635
   << Timeline
 
   [FAILED] volume create failed
   Unexpected error:
-      <*status.Error | 0xc000114608>:
-      rpc error: code = InvalidArgument desc = ERROR:ControllerServer:CreateVolume:be6e9e2e volume name is longer then 64
+      <*status.Error | 0xc000236100>:
+      rpc error: code = InvalidArgument desc = ERROR:ControllerServer:CreateVolume:5a058fef volume name is longer then 64
       {
           s: {
               s: {
@@ -82,22 +82,22 @@ Controller Service [Controller Server] CreateVolume [It] should not fail when cr
                   sizeCache: 0,
                   unknownFields: nil,
                   Code: 3,
-                  Message: "ERROR:ControllerServer:CreateVolume:be6e9e2e volume name is longer then 64",
+                  Message: "ERROR:ControllerServer:CreateVolume:5a058fef volume name is longer then 64",
                   Details: nil,
               },
           },
       }
   occurred
-  In [It] at: /root/test/csi-test-5.3.1/pkg/sanity/controller.go:536 @ 09/28/25 09:52:18.311
+  In [It] at: /root/csi-test-5.5.0/pkg/sanity/controller.go:458 @ 07/29/26 02:46:15.635
 ------------------------------
-I0928 09:53:07.946264      28 resources.go:301] deleting snapshot ID 1520152922015662677
-••SSSS••••••••••S••S••••••
+I0729 02:47:34.047284      29 resources.go:306] deleting snapshot ID 1740270412312487446
+••SSSS••••••••••S••S•••
 
 Summarizing 2 Failures:
   [FAIL] CreateSnapshot [Controller Server] [It] should succeed when creating snapshot with maximum-length name
-  /root/test/csi-test-5.3.1/pkg/sanity/controller.go:1460
+  /root/csi-test-5.5.0/pkg/sanity/controller.go:1409
   [FAIL] Controller Service [Controller Server] CreateVolume [It] should not fail when creating volume with maximum-length name
-  /root/test/csi-test-5.3.1/pkg/sanity/controller.go:536
+  /root/csi-test-5.5.0/pkg/sanity/controller.go:458
 
-Ran 62 of 92 Specs in 1416.103 seconds
-FAIL! -- 60 Passed | 2 Failed | 1 Pending | 29 Skipped
+Ran 62 of 96 Specs in 1100.346 seconds
+FAIL! -- 60 Passed | 2 Failed | 1 Pending | 33 Skipped

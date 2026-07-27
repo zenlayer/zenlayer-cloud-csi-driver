@@ -1,18 +1,18 @@
 # Developer Documentation
-* If you need to manually compile this project, please refer to the following steps for reference only. If necessary, please contact after-sales support
-## use docker build image
-* Install the go environment
-* Install docker
+* If you need to build this project yourself, the following steps are for reference only. Contact after-sales support if you need help.
+## Build the image with Docker
+* Install the Go toolchain
+* Install Docker
 * Install make
-* Directly executing 'make image' in the project root directory will generate an image to the docker image space, which can be seen using 'docker images'
-* run cmd 'docker save -o zeccsi.tar zenlayer297/zeccsi:v1.1.0' export image
-* Upload the image package to all nodes of the k8s cluster and manually import it into the k8s namespace 'ctr -n=k8s.io image import ./zeccsi.tar'
-* After loading the image, you can continue to install the csi pod as described in the [ZecCSI Installation guide](./doc/install-guide.md)
+* Run `make image` in the project root directory. It builds the image into the local Docker image store, where you can list it with `docker images`.
+* Export the image: `docker save -o zeccsi.tar zenlayer297/zeccsi:v1.2.0`
+* Upload the image archive to every node of the Kubernetes cluster and import it into the containerd `k8s.io` namespace: `ctr -n=k8s.io image import ./zeccsi.tar`
+* Once the image is loaded, continue installing the CSI pods as described in the [ZecCSI installation guide](./doc/install-guide.md)
 
-## use buildkit build image
-* Install the go environment
+## Build the image with BuildKit
+* Install the Go toolchain
 * Install buildctl and buildkitd  [Install](https://github.com/moby/buildkit/releases)     
-* Generate conf-file /etc/buildkit/buildkitd.toml
+* Create the configuration file `/etc/buildkit/buildkitd.toml`
 ``` shell
 [worker]
   [worker.oci]
@@ -36,7 +36,7 @@
     http = true
     insecure = false
 ```
-* run buildkitd: buildkitd --config /etc/buildkit/buildkitd.toml &
-* run cmd in the project root directory: buildctl --addr tcp://127.0.0.1:1234 build --frontend=dockerfile.v0 --local context=.  --local dockerfile=./deploy/buildkit/  --output type=image,name=docker.io/zenlayer297/zeccsi:v1.1.0
-* check image: ctr -n=k8s.io image ls -q 
-* After loading the image, you can continue to install the csi pod as described in the [ZecCSI Installation guide](./doc/install-guide.md)
+* Start buildkitd: `buildkitd --config /etc/buildkit/buildkitd.toml &`
+* Run the build from the project root directory: `buildctl --addr tcp://127.0.0.1:1234 build --frontend=dockerfile.v0 --local context=.  --local dockerfile=./deploy/buildkit/  --output type=image,name=docker.io/zenlayer297/zeccsi:v1.2.0`
+* Verify the image: `ctr -n=k8s.io image ls -q`
+* Once the image is loaded, continue installing the CSI pods as described in the [ZecCSI installation guide](./doc/install-guide.md)

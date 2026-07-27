@@ -33,28 +33,30 @@ import (
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
 	k8smount "k8s.io/mount-utils"
-	utilexec "k8s.io/utils/exec"
 )
 
 type NodeServer struct {
 	csi.UnimplementedNodeServer
 
-	driver     *driver.DiskDriver
-	cloud      cloud.CloudManager
-	mounter    *k8smount.SafeFormatAndMount
-	k8smounter k8smount.Interface
-	locks      *common.ResourceLocks
+	driver *driver.DiskDriver
+	cloud  cloud.CloudManager
+	// mounter 是节点侧唯一的 mounter。之前 stage 用 NewWithoutSystemd 挂载、
+	// unstage/publish 用这个 systemd 感知的 mounter 卸载, 两者不一致:
+	// 绕过 systemd-run 建立的挂载不受 systemd 跟踪, 在 systemd 主机上容器退出时
+	// 可能被 systemd 连带清理。mount-utils 的 New("") 会自己探测 systemd 是否可用
+	// 并在不可用时自动退化, 所以统一用它既安全也更正确。
+	mounter *k8smount.SafeFormatAndMount
+	locks   *common.ResourceLocks
 }
 
 var _ csi.NodeServer = &NodeServer{}
 
 func NewNodeServer(d *driver.DiskDriver, c cloud.CloudManager, mnt *k8smount.SafeFormatAndMount) *NodeServer {
 	return &NodeServer{
-		driver:     d,
-		cloud:      c,
-		mounter:    mnt,
-		k8smounter: k8smount.NewWithoutSystemd(""),
-		locks:      common.NewResourceLocks(),
+		driver:  d,
+		cloud:   c,
+		mounter: mnt,
+		locks:   common.NewResourceLocks(),
 	}
 }
 
@@ -91,11 +93,9 @@ func (ns *NodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 
 	volId, serial, err := common.ParseCsiVolId(req.GetVolumeId())
 	if err != nil {
-		return nil, status.Error(codes.Aborted, err.Error())
-	}
-	devicePath, err := ns.getDevPathBySerial(serial)
-	if err != nil {
-		return nil, status.Error(codes.NotFound, err.Error())
+		// 无法解析就拿不到 serial, 也就找不到对应的块设备, 等价于该卷在本节点不存在。
+		// 与 getDevPathBySerial 找不到设备时的返回码保持一致, 都是 NotFound。
+		return nil, status.Errorf(codes.NotFound, "%s %v", ERRORLOG, err)
 	}
 
 	stagePath := req.GetStagingTargetPath()
@@ -110,6 +110,12 @@ func (ns *NodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 
 	isBlockMode := req.GetVolumeCapability().GetBlock() != nil
 	if isBlockMode {
+		// 只有块设备模式需要解析设备路径: publish 要把裸设备 bind 到 targetPath。
+		// 文件系统模式下 publish 只是把 NodeStageVolume 准备好的 stagePath 再 bind 到 targetPath
+		devicePath, err := ns.getDevPathBySerial(serial)
+		if err != nil {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
 		stagePath = devicePath
 	}
 
@@ -199,9 +205,13 @@ func (ns *NodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 		return nil, status.Error(codes.InvalidArgument, ERRORLOG+"Volume Id missing in request.")
 	}
 
+	// 卸载类 RPC 必须幂等, 而且真正要清理的对象是 targetPath —— volId 在本函数里只用作
+	// 锁的 key。所以 id 解析失败时不能报错阻塞清理(否则挂载点会永久残留在节点上),
+	// 退化成用原始 volume id 加锁继续往下走。
 	volId, _, err := common.ParseCsiVolId(req.GetVolumeId())
 	if err != nil {
-		return nil, status.Error(codes.Aborted, err.Error())
+		klog.Warningf("%s %v, fall back to locking on the raw volume id", INFOLOG, err)
+		volId = req.GetVolumeId()
 	}
 
 	targetPath := req.GetTargetPath()
@@ -255,7 +265,8 @@ func (ns *NodeServer) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 
 	volId, serial, err := common.ParseCsiVolId(req.GetVolumeId())
 	if err != nil {
-		return nil, status.Error(codes.Aborted, err.Error())
+		//拿不到 serial 就找不到块设备, 等价于该卷在本节点不存在
+		return nil, status.Errorf(codes.NotFound, "%s %v", ERRORLOG, err)
 	}
 	targetPath := req.GetStagingTargetPath()
 
@@ -288,7 +299,7 @@ func (ns *NodeServer) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 		return nil, status.Error(codes.InvalidArgument, ERRORLOG+" unsupport fsType "+fsType)
 	}
 
-	notMnt, err := ns.k8smounter.IsLikelyNotMountPoint(targetPath)
+	notMnt, err := ns.mounter.Interface.IsLikelyNotMountPoint(targetPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			if err = os.MkdirAll(targetPath, 0750); err != nil {
@@ -317,16 +328,14 @@ func (ns *NodeServer) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 	mkfsOptions := make([]string, 0)
 	omitfsck := false
 
-	diskMounter := &k8smount.SafeFormatAndMount{Interface: ns.k8smounter, Exec: utilexec.New()}
-
 	klog.Infof("%s Will mount [%s] to [%s], vol[%s], fstype[%s], req options[%v], used options[%v], featureGates[%v]", INFOLOG, devicePath, targetPath, volId, fsType, mnt.MountFlags, options, common.FeatureGates)
-	if err := common.FormatAndMount(diskMounter, devicePath, targetPath, fsType, mkfsOptions, options, omitfsck); err != nil {
+	if err := common.FormatAndMount(ns.mounter, devicePath, targetPath, fsType, mkfsOptions, options, omitfsck); err != nil {
 		klog.Errorf("%s Mountdevice: FormatAndMount fail with mkfsOptions [%s], [%s], [%s], [%s], [%s] with error[%s]", ERRORLOG, devicePath, targetPath, fsType, mkfsOptions, options, err.Error())
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	klog.Infof("%s Success mount [%s] to [%s], vol[%s], fstype[%s], req options[%v], used options[%v], featureGates[%v]", INFOLOG, devicePath, targetPath, volId, fsType, mnt.MountFlags, options, common.FeatureGates)
 
-	r := k8smount.NewResizeFs(diskMounter.Exec)
+	r := k8smount.NewResizeFs(ns.mounter.Exec)
 	needResize, err := r.NeedResize(devicePath, targetPath)
 	if err != nil {
 		klog.Errorf("%s Could not determine if volume[%s] need to be resized[%v], devicepath[%s], targetpath[%s]", ERRORLOG, req.VolumeId, err, devicePath, targetPath)
@@ -366,9 +375,11 @@ func (ns *NodeServer) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 		return nil, status.Error(codes.InvalidArgument, ERRORLOG+"Target path missing in request")
 	}
 
+	// 同 NodeUnpublishVolume: volId 只用作锁的 key, 解析失败不能阻塞 staging 路径的清理
 	volId, _, err := common.ParseCsiVolId(req.GetVolumeId())
 	if err != nil {
-		return nil, status.Error(codes.Aborted, err.Error())
+		klog.Warningf("%s %v, fall back to locking on the raw volume id", INFOLOG, err)
+		volId = req.GetVolumeId()
 	}
 
 	targetPath := req.GetStagingTargetPath()
@@ -443,16 +454,34 @@ func (ns *NodeServer) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 	ERRORLOG := "ERROR:" + funcName + hash + " "
 	INFOLOG := "INFO:" + funcName + hash + " "
 
-	if req.VolumeCapability != nil && req.VolumeCapability.GetBlock() != nil {
-		klog.Infof("%s skipping expand for block volume, req.GetVolumeId[%s]", INFOLOG, req.GetVolumeId())
-		return &csi.NodeExpandVolumeResponse{}, nil
-	}
-
 	if len(req.GetVolumeId()) == 0 {
 		return nil, status.Error(codes.InvalidArgument, ERRORLOG+"Volume ID missing in request")
 	}
 	if len(req.GetVolumePath()) == 0 {
-		return nil, status.Error(codes.InvalidArgument, ERRORLOG+"Volume path missing in ad request")
+		return nil, status.Error(codes.InvalidArgument, ERRORLOG+"Volume path missing in request")
+	}
+
+	// volume_capability 在 NodeExpandVolume 里是可选字段。带了就用它判断; 没带时不能
+	// 想当然按文件系统卷处理 —— 对裸设备跑 resize2fs/xfs_growfs 必然失败, 会让一次
+	// 本该成功的 block 卷扩容永久卡在 NodeExpandVolume 上。
+	// 没带 capability 时退化成按 volume_path 的文件类型判断(和 NodeGetVolumeStats
+	// 用的是同一套判断), block 卷的 volume_path 是一个块设备文件。
+	isBlockMode := false
+	if req.GetVolumeCapability() != nil {
+		isBlockMode = req.GetVolumeCapability().GetBlock() != nil
+	} else {
+		var err error
+		isBlockMode, _, err = isBlockDevicePath(req.GetVolumePath())
+		if err != nil {
+			klog.Errorf("%s stat error, volumePath[%s], error[%v]", ERRORLOG, req.GetVolumePath(), err)
+			return nil, status.Errorf(codes.NotFound, "%s failed to stat volumePath[%s], err[%v]", ERRORLOG, req.GetVolumePath(), err)
+		}
+		klog.Infof("%s volume capability is not set, detected blockmode[%v] from volumePath[%s]", INFOLOG, isBlockMode, req.GetVolumePath())
+	}
+	if isBlockMode {
+		// block 卷没有文件系统需要扩, 云盘本身已经由 ControllerExpandVolume 扩好了
+		klog.Infof("%s skipping expand for block volume, req.GetVolumeId[%s]", INFOLOG, req.GetVolumeId())
+		return &csi.NodeExpandVolumeResponse{}, nil
 	}
 
 	reqSizeBytes, err := common.GetRequestSizeBytes(req.GetCapacityRange())
@@ -462,7 +491,8 @@ func (ns *NodeServer) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 
 	volId, serial, err := common.ParseCsiVolId(req.GetVolumeId())
 	if err != nil {
-		return nil, status.Error(codes.Aborted, err.Error())
+		//拿不到 serial 就找不到块设备, 等价于该卷在本节点不存在
+		return nil, status.Errorf(codes.NotFound, "%s %v", ERRORLOG, err)
 	}
 
 	volPath := req.GetVolumePath()
@@ -545,14 +575,11 @@ func (ns *NodeServer) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVo
 
 	volumePath := req.GetVolumePath()
 	// block mode volume's stats can't be retrieved like those filesystem volumes
-	fi, err := os.Stat(volumePath)
+	isBlockMode, mode, err := isBlockDevicePath(volumePath)
 	if err != nil {
 		klog.Errorf("%s stat error, volumePath[%s], error[%v]", ERRORLOG, volumePath, err)
 		return nil, status.Errorf(codes.NotFound, "failed to stat volumePath[%s], err[%v]", volumePath, err)
 	}
-	mode := fi.Mode()
-
-	isBlockMode := mode&os.ModeDevice != 0 && mode&os.ModeCharDevice == 0
 
 	if isBlockMode {
 		blockSize, err := ns.getBlockSizeBytes(volumePath)
@@ -592,6 +619,21 @@ func (ns *NodeServer) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVo
 			},
 		},
 	}, nil
+}
+
+// isBlockDevicePath 判断一个 volume_path 指向的是块设备(block 卷)还是目录(文件系统卷)。
+//
+// 供 NodeGetVolumeStats 和 NodeExpandVolume 共用: 前者靠它决定用 blockdev 还是 statfs
+// 取容量, 后者在 CO 没有下发 volume_capability 时靠它避免对裸设备执行文件系统扩容。
+// 同时返回 os.FileMode 供调用方打日志。
+func isBlockDevicePath(volumePath string) (isBlock bool, mode os.FileMode, err error) {
+	fi, err := os.Stat(volumePath)
+	if err != nil {
+		return false, 0, err
+	}
+	mode = fi.Mode()
+	//排除字符设备, 只认块设备
+	return mode&os.ModeDevice != 0 && mode&os.ModeCharDevice == 0, mode, nil
 }
 
 func checkfsType(fsType string) error {

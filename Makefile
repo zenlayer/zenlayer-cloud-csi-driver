@@ -16,7 +16,7 @@
 
 .PHONY: bin image
 
-DISK_VERSION=v1.1.0
+DISK_VERSION=v1.2.0
 
 DISK_IMAGE_NAME=docker.io/zenlayer297/zeccsi
 CONTAINER_CMD=docker

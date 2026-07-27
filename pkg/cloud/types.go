@@ -17,7 +17,7 @@ limitations under the License.
 package cloud
 
 /*
-Instance Status(v0.2.23)
+Instance Status(v0.2.49)
 DEPLOYING			创建部署中。
 REBUILDING			重装系统中。
 REBOOT				系统重启中。
@@ -37,7 +37,7 @@ const (
 )
 
 /*
-Volume Status(v0.2.23)
+Volume Status(v0.2.49)
 CREATING			创建中。
 IN_USE				挂载使用中。
 AVAILABLE			未挂载。
@@ -46,7 +46,6 @@ ATTACHING			云盘挂载实例中。
 DETACHING			云盘解绑实例中。
 DELETING			销毁中。
 RECYCLED			处于回收状态，等待销毁。
-RECYCLING			回收中。
 FAILED				创建失败。
 SNAPSHOT_CREATING	快照创建过程中。
 ROLLING_BACK		云盘使用快照回滚过程中。
@@ -58,10 +57,17 @@ const (
 	DiskStatusAvailable string = "AVAILABLE"
 	DiskStatusDeleted   string = "DELETED"
 	DiskStatusStable    string = "STABLE"
+	DiskStatusRecycled  string = "RECYCLED"
 )
 
 /*
-Snapshot Status(v0.2.23)
+第一次调用ReleaseDisk只是把云盘放入回收站(RECYCLED状态,保留24小时),
+需要对处于RECYCLED状态的云盘再次调用ReleaseDisk才会真正销毁, 所以共需要2次释放.
+*/
+const maxReleaseDiskTimes int = 2
+
+/*
+Snapshot Status(v0.2.49)
 CREATING			创建中。
 AVAILABLE			创建成功。
 FAILED				创建失败。

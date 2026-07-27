@@ -1,55 +1,55 @@
 # Installation
-You can manage your Zec-Vm and Zec-CloudDisk and secret on the [Zenlayer console](https://console.zenlayer.com/).
+You can manage your ZEC VMs, ZEC cloud disks, and secrets in the [Zenlayer console](https://console.zenlayer.com/).
 
 ## Prerequisites
 
 * Kubernetes version >= 1.28.2
 * `kubectl` configured to communicate with the cluster
 * Helm 3.18.1+
-* The controller-type CSI pod needs to connect to the external public network
+* The controller-type CSI pod needs to reach the public internet
 
-Please review the [chart values file](../chart/values.yaml) before installing.
+Review the [chart values file](../chart/values.yaml) before installing.
 
-## Setup Permissions
+## Set Up Permissions
 
-The driver requires all permissions to invoke Zenlayer Cloud OpenAPIs to manage the volume on the user's behalf.
+The driver needs permission to call the Zenlayer Cloud OpenAPIs that manage volumes on the user's behalf.
 
-* use a secret for access key.
-  1. Create a Console user, enable OpenAPI access. Once the user is created, record the Access key ID and Access key password.
-  2. Store the AccessKey to Cluster as a secret.
+* Use a secret for the access key.
+  1. Create a console user and enable OpenAPI access for it. Once the user is created, record the access key ID and the access key password.
+  2. Store the access key in the cluster as a secret.
   ```shell
   kubectl create secret -n kube-system generic csi-access-key --from-literal=AccessKeyID='***********'  --from-literal=AccessKeyPassword='***********'
   ```
 
 ## Deploy the Drivers
 
-* You can deploy the drivers using Helm. The zeccsi pod has two roles, controller and node (csi-zecplugin-provisioner and csi-zecplugin)    
-  1. The controller runs in Deployment mode; the pod needs to connect to the external public network.     
-  2. The node runs in DaemonSet mode and is deployed on each node.       
+* You can deploy the drivers using Helm. The zeccsi pod has two roles: controller and node (`csi-zecplugin-provisioner` and `csi-zecplugin`).    
+  1. The controller runs as a Deployment; its pod needs to reach the public internet.     
+  2. The node runs as a DaemonSet and is deployed on every node.       
 
-* You can choose one of the following two installation methods. Automatic installation is recommended. You can use helm for a complete installation. The image will be automatically pulled from docker hub.          
-* If you want to manually package the image, please refer to [ZecCSI Build guide](../deploy/build/build-guide.md)        
-### Automatic installation csi pod && Automatic pull image
+* Choose one of the two installation methods below. Automatic installation is recommended, because Helm performs the whole installation and the image is pulled from Docker Hub automatically.          
+* If you want to build and package the image yourself, refer to the [ZecCSI build guide](../deploy/build/build-guide.md).        
+### Automatic Installation (image pulled automatically)
 
 ```shell
-## view chart/values.yaml View the configurable parameters during installation, example:[--set maxVolume=5]
-helm install zeccsi oci://registry-1.docker.io/zenlayer297/zenlayer-cloud-csi-driver --version 1.1.0
+# See chart/values.yaml for the parameters you can configure at install time, for example --set maxVolume=5
+helm install zeccsi oci://registry-1.docker.io/zenlayer297/zenlayer-cloud-csi-driver --version 1.2.0
 ```
-### Manual installation csi pod && Automatic pull image
+### Manual Installation (image pulled automatically)
 
 ```shell
 helm package ./chart
-helm install zeccsi ./zenlayer-cloud-csi-driver-1.1.0.tgz
+helm install zeccsi ./zenlayer-cloud-csi-driver-1.2.0.tgz
 ```
-* You can also install csi with args, for example set controller-csi replica or specify controller-csi which node will be deployed.          
-* If only node02 nodes in your k8s cluster can be connected to the external public network, you need to deploy controller-csi on node02        
-  1. first add a label: kubectl label nodes node02 zeccsiType=Controller       
-  2. helm install zeccsi ./zenlayer-cloud-csi-driver-1.1.0.tgz --set controllerSelectorkey=zeccsiType --set controllerSelectorval=Controller --set replicaCount=1         
-  3. Then the controller CSI provisioner will be deployed on node02 with only one replica        
+* You can also pass arguments at install time, for example to set the number of controller replicas or to pin the controller to a specific node.          
+* If node02 is the only node in your Kubernetes cluster that can reach the public internet, deploy the controller there:        
+  1. Label the node: `kubectl label nodes node02 zeccsiType=Controller`       
+  2. Install with a matching selector: `helm install zeccsi ./zenlayer-cloud-csi-driver-1.2.0.tgz --set controllerSelectorkey=zeccsiType --set controllerSelectorval=Controller --set replicaCount=1`         
+  3. The controller CSI provisioner is then deployed on node02 with a single replica.        
 
 ## Verify
 
-Check the csi pods are running and ready:      
+Check that the CSI pods are running and ready:      
 
 ```shell
 kubectl get pods -n kube-system -l app=csi-zecplugin

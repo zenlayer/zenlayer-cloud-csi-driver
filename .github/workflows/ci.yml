@@ -1,0 +1,73 @@
+---
+name: CI
+
+# yamllint disable-line rule:truthy
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+# A newer push to the same ref cancels the run still in flight.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # This job is what the README badge reports on, so every step here must be one
+  # that is expected to pass on a clean tree.
+  #
+  # Note this driver only builds on Linux: pkg/common calls
+  # SafeFormatAndMount.GetDiskFormat, which mount-utils only provides on Linux, so
+  # `go build ./...` fails outright on macOS. ubuntu-latest is therefore the only
+  # environment that can verify the whole module, which is exactly why this job exists.
+  build:
+    name: build / vet / test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l ./cmd ./pkg)
+          if [ -n "$unformatted" ]; then
+            echo "The following files are not formatted, run 'gofmt -w ./cmd ./pkg':"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: go build
+        run: go build ./...
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go test
+        run: go test -count=1 ./...
+
+  # Advisory for now, not a gate. This repository has never been linted, so the
+  # default linter set (errcheck, unused, staticcheck, ...) is expected to report a
+  # backlog of pre-existing findings. Keeping the job non-blocking surfaces that
+  # output without turning the CI badge red on day one; once the backlog is cleared,
+  # delete the continue-on-error line to make it enforcing.
+  lint:
+    name: golangci-lint (advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.12

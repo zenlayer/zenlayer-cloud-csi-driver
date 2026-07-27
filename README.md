@@ -1,20 +1,20 @@
 # Zenlayer cloud csi driver
-[![GoReportCard Widget]][GoReportCardResult]
+[![CI Status]][CI Result]
 
 
 ## Description
-* Zenlayer CSI plugin implements an interface between Container Storage Interface ([CSI](https://github.com/container-storage-interface/)) enabled Container Orchestrator (CO) and the storage of Zenlayer.
-* Version Description: v 1(Stable Release).0(Patch).0(BugFix).
+* The Zenlayer CSI plugin implements the interface between a Container Storage Interface ([CSI](https://github.com/container-storage-interface/))-enabled Container Orchestrator (CO) and Zenlayer storage.
+* Version scheme: `v<major>.<minor>.<patch>`, for example `v1.2.0`.
 
-## Zec-csi and Kubernetes Version Matrix
+## ZEC CSI and Kubernetes Version Matrix
 | ZEC CSI Version | Container Orchestrator Name | Version Tested      |
 | -----------------| --------------------------- | -------------------|
-| v1.1.0          | Kubernetes                   |  v1.28.2 +         |
+| v1.2.0          | Kubernetes                   |  v1.28.2 +         |
 
-## Zec-csi Feature Matrix
+## ZEC CSI Feature Matrix
 | ZEC CSI Version  | Feature                                                          |
 | -----------------| -----------------------------------------------------------------|
-| v1.1.0           | Create/Delete/Attach/Detach/Resize/Snapshot/Topology Volume      |
+| v1.2.0           | Create/Delete/Attach/Detach/Resize/Snapshot/Topology Volume      |
 
 ## External-csi-sidecar Version Description
 | sidecar                             |    Current Version    |     Min CSI Spec Version  |       Container Image                                                        |       Min K8s Version    |   Recommended K8s Version     |
@@ -26,12 +26,12 @@
 | livenessprobe                       | v2.15.0               | v1.0.0                    | registry.k8s.io/sig-storage/livenessprobe:v2.15.0                            | v1.13                    | -                             |
 | external-snapshotter                | v8.2.0                | v1.11.0                   | registry.k8s.io/sig-storage/snapshot-controller&csi-snapshotter:v8.2.0       | v1.25                    | v1.25                         |
 
-## Zenlayer-openApi-sdk Version [API Github](https://github.com/zenlayer/zenlayercloud-sdk-go)
+## Zenlayer OpenAPI SDK Version [API GitHub](https://github.com/zenlayer/zenlayercloud-sdk-go)
 | ZEC CSI Version  | SDK Version                 |
 | -----------------| --------------------------- |
-| v1.1.0           | v0.2.23+                    |
+| v1.2.0           | v0.2.49+                    |
 
-## Helm Version [Help Doc](./tools/helm.md)
+## Helm Version [Helm Doc](./tools/helm.md)
 | Helm Version     |
 | -----------------|
 |  v3.18.1+        |
@@ -42,18 +42,18 @@ Disk CSI driver is available to help simplify storage management. Once a user cr
 ## How to Use
 
 ### Step 1: Prepare the Required Environment
-* Authorizations to access related cloud resources. [console](https://console.zenlayer.com)        
-* A working Kubernetes cluster deployed on ZEC Vms.         
-* Local kubectl configured to communicate with this cluster.          
+* Authorization to access the related cloud resources. [console](https://console.zenlayer.com)        
+* A working Kubernetes cluster deployed on ZEC VMs.         
+* A local kubectl configured to communicate with this cluster.          
 
-### Step 2: Install the CSI driver
-* If you only want to deploy the CSI plugin, please refer to the [ZecCSI Installation guide](./doc/install-guide.md) for detailed instructions.  (The csi image and chart repository are located on docker hub, so ensure network connectivity. zenlayer csi can be fully installed with helm and there is no need to download the source code from github unless you have development requirements)           
+### Step 2: Install the CSI Driver
+* If you only want to deploy the CSI plugin, refer to the [ZecCSI installation guide](./doc/install-guide.md) for detailed instructions. The CSI image and the chart repository are hosted on Docker Hub, so make sure the cluster has network connectivity to it. Zenlayer CSI can be installed entirely with Helm; there is no need to download the source code from GitHub unless you intend to develop against it.           
 
-### Step 3: Create StorageClass
-Storage class is necessary for dynamic volume provisioning.       
-Please refer to the [Storage-class and Topology config guide](./doc/storage-class.md) for detailed instructions.            
+### Step 3: Create a StorageClass
+A storage class is required for dynamic volume provisioning.       
+Refer to the [StorageClass and topology configuration guide](./doc/storage-class.md) for detailed instructions.            
 
-### Step 4: Check the Status of CSI driver
+### Step 4: Check the Status of the CSI Driver
 Check that all pods are running and ready.         
 ```shell
 kubectl get pods -n kube-system -l app=csi-zecplugin
@@ -91,13 +91,13 @@ kubectl delete -f deploy/simple-example/nginx-statefulset.yaml
 ```
 
 ### Step 6: Test Disk Expansion
-Choose one PVC, then modify spec:resources:requests:storage           
+Choose a PVC and increase `spec.resources.requests.storage`:           
 ```shell
 kubectl get pvc -o wide
 kubectl edit pvc nginx-data-nginx-statefulset-0
 ```
 
-## Step 7: Test SnapShot
+### Step 7: Test Snapshots
 ```shell
 kubectl apply -f deploy/snapshot-example/sc.yaml
 kubectl get vsclass
@@ -108,15 +108,16 @@ kubectl get vsc
 ```
 
 ## Notice
-* The logs of zeccsi driver are persisted to /var/log/zenlayer_csi_logsbackups_fluent.log. This log file will not be rotated and will not be automatically deleted. It will be continuously appended.        
-* By default, each Elastic Compute Instance can mount two cloud disks, One Boot Disk and One Data Disk. chart/values.yaml maxVolume=9, so you need to submit an application on the console to modify Disks_per_instance to a maximum of 10 or the value you need(Products->Service Quotas->Elastic Compute->Disks_per_instance). Otherwise, only one pv can be created in a virtual machine.            
-* An RWO (ReadWriteOnce) volume can only be attached to a single node at a time. When the original node shuts down or loses contact, a new node that wants to attach this volume must ensure that it has been safely detached from the original node. The zec-csi-driver takes a conservative approach: to ensure data safety, RWO volumes are not automatically migrated. If a node shuts down and cannot be restored, manual intervention is required—this includes ensuring the original pod has terminated, manually detaching the disk from the original node, and handling the corresponding VolumeAttachment. The CSI driver must guarantee that new nodes cannot access the volume simultaneously, but it cannot always determine whether the original pod has truly terminated. Based on practical experience, for RWO volumes, one should not rely on automatic migration when nodes fail.            
+* The logs of the zeccsi driver are persisted to `/var/log/zenlayer_csi_logsbackups_fluent.log`. This log file is neither rotated nor deleted automatically; it is appended to continuously.        
+* By default, each Elastic Compute instance can mount only two cloud disks: one boot disk and one data disk. Because `chart/values.yaml` sets `maxVolume: 9`, you must first raise the `Disks_per_instance` quota in the console (Products -> Service Quotas -> Elastic Compute -> Disks_per_instance) to the value you need, up to a maximum of 10. Otherwise only one PV can be attached to a virtual machine.            
+* An RWO (ReadWriteOnce) volume can be attached to only one node at a time. When the original node shuts down or becomes unreachable, any new node that wants to attach the volume must first make sure the volume has been safely detached from the original node. The zec-csi-driver takes a conservative approach and never migrates an RWO volume automatically, in order to protect your data. If a node shuts down and cannot be recovered, manual intervention is required: confirm that the original pod has terminated, detach the disk from the original node manually, and clean up the corresponding VolumeAttachment. The CSI driver must guarantee that a new node cannot access the volume at the same time as the old one, but it cannot always determine whether the original pod has really terminated. In practice, do not rely on automatic migration of RWO volumes when a node fails.            
+* When a volume is staged on a node for the first time, the driver formats it with discard turned off: `-E nodiscard` for ext3 and ext4, `-K` for xfs. A newly created ZEC cloud disk is already empty, so discarding every block before the filesystem is written gains nothing, and it makes formatting take longer the larger the disk is. This applies only to the one-time `mkfs`; the discard/TRIM behaviour of the mounted filesystem is unaffected, and you can still request it through the StorageClass `mountOptions` (which needs `--set featureGates=enable_mount_opt` at install time).            
 
 ## Currently Unsupported Features
-* v1.1.0 does not support volume clone; it only supports creating a PVC from a snapshot (dataSource:kind:VolumeSnapshot).
-* v1.1.0 does not support volume group snapshots.
-* v1.1.0 Snapshots rely on the PV. If a PV is deleted, the snapshot created from it will be automatically deleted in the storage system, but the corresponding vs and vsc resources will remain in the Kubernetes cluster. These vs resources are no longer usable, so you need to clean them up manually.
+* v1.2.0 does not support volume cloning; it only supports creating a PVC from a snapshot (`dataSource.kind: VolumeSnapshot`).
+* v1.2.0 does not support volume group snapshots.
+* In v1.2.0, snapshots depend on their source PV. If a PV is deleted, the snapshots created from it are also deleted in the storage system, but the corresponding VolumeSnapshot (`vs`) and VolumeSnapshotContent (`vsc`) objects remain in the Kubernetes cluster. Those VolumeSnapshot objects are no longer usable, so you have to clean them up manually.
 
 
-[GoReportCard Widget]: https://goreportcard.com/badge/github.com/zenlayer/zenlayer-cloud-csi-driver
-[GoReportCardResult]: https://goreportcard.com/report/github.com/zenlayer/zenlayer-cloud-csi-driver
+[CI Status]: https://github.com/zenlayer/zenlayer-cloud-csi-driver/actions/workflows/ci.yml/badge.svg?branch=main
+[CI Result]: https://github.com/zenlayer/zenlayer-cloud-csi-driver/actions/workflows/ci.yml

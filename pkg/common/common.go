@@ -58,7 +58,7 @@ func ExitFunction(functionName, hash string) (info string) {
 	entryTimesMu.Unlock()
 
 	if ok {
-		return fmt.Sprintf("Exit[%s], UTC Time[%s], Hash[%s], Elapsed[%s]", functionName, current.Format(DefaultTimeFormat), hash, current.Sub(start).Round(time.Millisecond))
+		return fmt.Sprintf("Exit[%s], UTC Time[%s], Hash[%s], Elapsed[%dms]", functionName, current.Format(DefaultTimeFormat), hash, current.Sub(start).Milliseconds())
 	}
 	return fmt.Sprintf("Exit[%s], UTC Time[%s], Hash[%s]", functionName, current.Format(DefaultTimeFormat), hash)
 }
@@ -75,70 +75,30 @@ func RetryOnError(backoff wait.Backoff, fn func() error) error {
 	}, fn)
 }
 
-type retryLimiter struct {
-	record   map[string]int
-	maxRetry int
-	mux      sync.RWMutex
-}
-
-type RetryLimiter interface {
-	Add(id string)
-	Try(id string) bool
-	Reset(id string)
-	GetMaxRetryTimes() int
-	GetCurrentRetryTimes(id string) int
-}
-
-func NewRetryLimiter(maxRetry int) RetryLimiter {
-	return &retryLimiter{
-		record:   map[string]int{},
-		maxRetry: maxRetry,
-		mux:      sync.RWMutex{},
-	}
-}
-
-func (r *retryLimiter) Add(id string) {
-	r.mux.Lock()
-	defer r.mux.Unlock()
-	r.record[id]++
-}
-
-func (r *retryLimiter) Try(id string) bool {
-	r.mux.RLock()
-	defer r.mux.RUnlock()
-	return r.maxRetry == 0 || r.record[id] <= r.maxRetry
-}
-
-// Reset clears the failure count for id. It should be called after a successful
-// operation so that a volume reused across attach/detach cycles does not keep
-// accumulating failures over the controller's lifetime.
-func (r *retryLimiter) Reset(id string) {
-	r.mux.Lock()
-	defer r.mux.Unlock()
-	delete(r.record, id)
-}
-
-func (r *retryLimiter) GetMaxRetryTimes() int {
-	return r.maxRetry
-}
-
-func (r *retryLimiter) GetCurrentRetryTimes(id string) int {
-	r.mux.RLock()
-	defer r.mux.RUnlock()
-	return r.record[id]
-}
-
 func GenCsiVolId(volid, serial string) (csivolId string) {
 	return volid + "-" + serial
 }
 
+// ParseCsiVolId 把 GenCsiVolId 生成的 csi volume id 还原成云盘 id 和 serial。
+//
+// id 只会以 "<diskId>-<serial>" 的形式生成, 且 diskId 是纯数字不含 "-", 所以在第一个
+// "-" 处切分总能正确还原两段(用 strings.Cut 而不是 Split 取首尾, 后者在 serial 含 "-"
+// 时会错位)。
+//
+// 形状不符的 id 不可能对应任何 ZEC 云盘, 因此这里返回错误, 而不是像之前那样只打一条
+// 日志、把截断出来的垃圾 volid 继续发给云 API(那样云端只会回一个语义无关的错误)。
+// 调用方必须按各自 RPC 的规范要求映射这个错误:
+//   - 卸载/删除类 RPC 要求幂等, 应视作"目标已不存在"直接返回成功;
+//   - 其余 RPC 应返回 NotFound —— 这个 id 对 CO 而言格式合法, 只是不由本驱动发出,
+//     即该卷在本驱动这里不存在。
 func ParseCsiVolId(csivolId string) (volid string, serial string, err error) {
-	s := strings.Split(csivolId, "-")
-	volid = s[0]
-	serial = s[len(s)-1]
+	volid, serial, found := strings.Cut(csivolId, "-")
+	if !found {
+		return "", "", fmt.Errorf("invalid csi volume id[%s]: want format <diskId>-<serial>", csivolId)
+	}
 	if len(volid) != ZECVOLID_LEN || len(serial) != ZECVOLSERIAL_LEN {
-		klog.Errorf("ERROR:ParseCsiVolId() volume id len or serial len error. volid len[%d], serial len[%d], csivolId[%s], volid[%s], serial[%s]", len(volid), len(serial), csivolId, volid, serial)
-		return "", "", fmt.Errorf("ERROR:ParseCsiVolId() invalid volume id, volid len[%d], serial len[%d], csivolId[%s]", len(volid), len(serial), csivolId)
+		return "", "", fmt.Errorf("invalid csi volume id[%s]: disk id[%s] len[%d] want[%d], serial[%s] len[%d] want[%d]",
+			csivolId, volid, len(volid), ZECVOLID_LEN, serial, len(serial), ZECVOLSERIAL_LEN)
 	}
 	return volid, serial, nil
 }

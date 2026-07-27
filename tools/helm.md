@@ -1,22 +1,22 @@
-# Helm is an officially provided package manager for kubernetes        
+# Helm is the official package manager for Kubernetes        
 ## Chart      
-The Helm software package is in TAR format. Similar to the DEB package of APT or the RPM package of YUM, it contains a set of YAML files that define Kubernetes resources       
+A Helm package is distributed as a TAR archive. Much like a DEB package for APT or an RPM package for YUM, it contains a set of YAML files that define Kubernetes resources.       
 
 ## Repository     
-Helm's software Repository, Repository, is essentially a Web server that stores a series of Chart software packages for users to download and provides a manifest file of the Chart packages in this Repository for query.      
-Helm can manage multiple different repositories simultaneously.       
+A Helm repository is essentially a web server that hosts a set of chart packages for users to download, together with an index file that lists the charts available in that repository.      
+Helm can manage several repositories at the same time.       
 
 ## Release        
-A Chart deployed in a Kubernetes cluster using the helm install command is called a Release. It can be understood as an application instance deployed by Helm using the Chart package. A chart can usually be installed multiple times in the same cluster. Each installation will create a new release.        
+A chart deployed into a Kubernetes cluster with `helm install` is called a release. You can think of a release as one application instance that Helm deployed from a chart package. The same chart can usually be installed more than once in a cluster, and each installation creates a new release.        
 
 
-## install Helm3      
+## Install Helm 3      
 [Helm](https://github.com/helm/helm/tags)       
 
 ## cmd
 ```shell
 Helm Commands:
 
-helm pull oci://registry-1.docker.io/zenlayer297/zenlayer-cloud-csi-driver --version 1.1.0
-helm show all oci://registry-1.docker.io/zenlayer297/zenlayer-cloud-csi-driver --version 1.1.0
+helm pull oci://registry-1.docker.io/zenlayer297/zenlayer-cloud-csi-driver --version 1.2.0
+helm show all oci://registry-1.docker.io/zenlayer297/zenlayer-cloud-csi-driver --version 1.2.0
 ```

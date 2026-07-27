@@ -50,7 +50,15 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-          imagePullPolicy: {{ .Values.pullPolicy }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 29633
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 15
+            failureThreshold: 5
           resources:
             limits:
               memory: 2100Mi
@@ -106,13 +114,13 @@ spec:
             requests:
               cpu: 10m
               memory: 20Mi
-          imagePullPolicy: {{ .Values.pullPolicy}}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
         - name: liveness-probe
           image: {{ .Values.images.registry }}{{ .Values.images.livenessProbe.repo }}{{ .Values.images.livenessProbe.tag }}
           args:
             - "--csi-address=/csi/csi.sock"
             - "--probe-timeout=10s"
-            - "--http-endpoint=localhost:29633"
+            - "--http-endpoint=:29633"
             - "--v=3"
           volumeMounts:
             - name: socket-dir
@@ -123,7 +131,7 @@ spec:
             requests:
               cpu: 10m
               memory: 20Mi
-          imagePullPolicy: {{ .Values.pullPolicy}}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
       volumes:
         - name: socket-dir
           hostPath:

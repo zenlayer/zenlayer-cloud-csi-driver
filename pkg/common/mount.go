@@ -79,8 +79,18 @@ func FormatAndMount(diskMounter *k8smount.SafeFormatAndMount, source string, tar
 		}
 	}
 
+	// mount(8) applies options left to right and the last one wins, while `defaults`
+	// expands to rw,suid,dev,exec,auto,nouser,async. Appending it *after* the caller's
+	// options therefore silently rewrites a requested `ro` mount into `rw` (and undoes
+	// anything else `defaults` covers), which contradicts the readOnly check above:
+	// fsck would be skipped for a read-only volume that then gets mounted read-write.
+	// Only fall back to `defaults` when the caller passed no options at all, where it
+	// is a no-op that merely keeps the historical `-o defaults` on the command line.
+	if len(mountOptions) == 0 {
+		mountOptions = []string{"defaults"}
+	}
+
 	// check device fs
-	mountOptions = append(mountOptions, "defaults")
 	if !readOnly && !omitFsCheck {
 		// Run fsck on the disk to fix repairable issues, only do this for volumes requested as rw.
 		args := []string{"-a", source}
@@ -213,17 +223,30 @@ func GetDiskFStypePTtype(disk string) (fstype string, pttype string, err error) 
 
 	return fstype, "", nil
 }
+
+// mkfsDefaultArgs builds the mkfs arguments used when the caller supplies no
+// explicit mkfsOptions.
+//
+// Discard is disabled on purpose for every filesystem: mkfs would otherwise issue
+// a full-device TRIM/discard before writing the new filesystem, which on a freshly
+// created ZEC cloud disk buys nothing (the disk starts out empty) and only turns
+// NodeStageVolume into a request whose duration grows with the disk size — a 32TiB
+// volume can keep mkfs busy long past the sidecar --timeout, and the retry then
+// finds the volId lock still held. The flags are the per-mkfs spelling of the same
+// thing: `-E nodiscard` for mke2fs, `-K` for mkfs.xfs.
 func mkfsDefaultArgs(fstype, source string) (args []string) {
 	// default args
 	if fstype == "ext4" || fstype == "ext3" {
 		args = []string{
-			"-F",  // Force flag
-			"-m0", // Zero blocks reserved for super-user
+			"-F",              // Force flag
+			"-m0",             // Zero blocks reserved for super-user
+			"-E", "nodiscard", // Do not discard blocks at mkfs time
 			source,
 		}
 	} else if fstype == "xfs" {
 		args = []string{
 			"-f",
+			"-K", // Do not discard blocks at mkfs time
 			source,
 		}
 	}

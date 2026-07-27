@@ -34,7 +34,6 @@ var (
 	endpoint             = flag.String("endpoint", "unix://csi/csi.sock", "CSI UnixSocket endpoint.")
 	maxVolume            = flag.Int64("maxvolume", 9, "Maximum number of volumes that controller can publish to the node.")
 	nodeName             = flag.String("nodename", "", "localhost hostname.")
-	retryDetachTimesMax  = flag.Int("retry-detach-times-max", 10, "Maximum retry times of failed detach volume. Set to 0 to disable the limit.")
 	secretpathAK         = flag.String("secretpathAK", "/etc/zec_secret/AccessKeyID", "zec console accesskeyId file.")
 	secretpathPW         = flag.String("secretpathPW", "/etc/zec_secret/AccessKeyPassword", "zec console accesskeyPassword file.")
 	driverType           = flag.String("drivertype", "", "zec csi driver type, node or controller.")
@@ -149,6 +148,6 @@ func main() {
 	driver := driver.GetDiskDriver()
 	driver.InitDiskDriver(diskDriverInput)
 
-	rpcserver.Run(driver, cm, mounter, *endpoint, *retryDetachTimesMax, *driverType)
+	rpcserver.Run(driver, cm, mounter, *endpoint, *driverType)
 	os.Exit(0)
 }

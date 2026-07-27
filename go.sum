@@ -214,8 +214,8 @@ github.com/stretchr/testify v1.8.2 h1:+h33VjcLVPDHtOdpUCuF+7gSuG3yGIftsP1YvFihtJ
 github.com/stretchr/testify v1.8.2/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
-github.com/zenlayer/zenlayercloud-sdk-go v0.2.23 h1:AL0B3zFR/g9LoDpJAXMMFVNN2eFLRu2wB1YgqgZXbrU=
-github.com/zenlayer/zenlayercloud-sdk-go v0.2.23/go.mod h1:iOR3Pzb2t3Z0+UvXhdUqi7nhwZM5Ux2oH4ixKH+qe88=
+github.com/zenlayer/zenlayercloud-sdk-go v0.2.49 h1:mmOwDPnRhQq1Qvi2CJpBLR83/FdOHGYyHpwAIhqxOCo=
+github.com/zenlayer/zenlayercloud-sdk-go v0.2.49/go.mod h1:iOR3Pzb2t3Z0+UvXhdUqi7nhwZM5Ux2oH4ixKH+qe88=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=
 go.opencensus.io v0.22.2/go.mod h1:yxeiOL68Rb0Xd1ddK5vPZ/oVn4vY4Ynel7k9FzqtOIw=

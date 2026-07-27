@@ -7,7 +7,15 @@ defaultResourceGroup: ""        ## if your k8s cluster is deployed in one zenlay
 
 featureGates: ""                ## support "enable_mount_opt", if open, csi will support config mount options in storage-class
   
-mixDriver: false                ## if true, controller will also do node-type job. Don't open it unless you know what you are doing
+## mixDriver is for testing only. When true, the controller pod also registers the node
+## service on its own socket, so that a single endpoint exposes both the controller and the
+## node service. This is what csi-sanity needs (see test/csi-sanity/README.md).
+## Do NOT enable it in production: the controller pod does not mount the kubelet directories
+## (/var/lib/kubelet/plugins and /var/lib/kubelet/pods) and does not run
+## node-driver-registrar, so any volume its node service stages or publishes is mounted only
+## inside the controller container and is never visible to a workload pod. Real node-side
+## work is always done by the csi-zecplugin DaemonSet.
+mixDriver: false
 
 images:
   pullPolicy: IfNotPresent
@@ -17,10 +25,10 @@ images:
 
   controller:
     repo: "zenlayer297/zeccsi:"
-    tag: "v1.1.0"
+    tag: "v1.2.0"
   node:
     repo: "zenlayer297/zeccsi:"
-    tag: "v1.1.0"
+    tag: "v1.2.0"
   externalAttacher:
     repo: "sig-storage/csi-attacher:"    
     tag: "v4.8.0"
