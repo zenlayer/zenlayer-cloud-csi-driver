@@ -46,6 +46,7 @@ helm install zeccsi ./zenlayer-cloud-csi-driver-1.2.0.tgz
   1. Label the node: `kubectl label nodes node02 zeccsiType=Controller`       
   2. Install with a matching selector: `helm install zeccsi ./zenlayer-cloud-csi-driver-1.2.0.tgz --set controllerSelectorkey=zeccsiType --set controllerSelectorval=Controller --set replicaCount=1`         
   3. The controller CSI provisioner is then deployed on node02 with a single replica.        
+* If the controller runs outside the cluster (for example on a managed control plane), install only the node plugin with `--set controllerEnabled=false`. The controller RBAC is still installed for the external controller to use. Start the external controller before switching an existing release to `false`, otherwise new volumes cannot be provisioned or attached.
 
 ## Verify
 

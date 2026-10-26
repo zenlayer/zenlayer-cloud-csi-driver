@@ -41,6 +41,7 @@ var (
 	featureGates         = flag.String("featureGates", "", "Alpha feature")
 	defaultZone          = flag.String("defaultZone", "", "")
 	defaultResourceGroup = flag.String("defaultGroup", "", "")
+	openAPIDomain        = flag.String("openAPIDomain", "", "Zenlayer OpenAPI domain used by the controller; empty uses the SDK default (console.zenlayer.com).")
 )
 
 // maskSecret keeps only the last few characters of a secret for logging,
@@ -105,7 +106,7 @@ func main() {
 	}
 
 	//init zec cloud manager
-	cm, err := cloud.NewZecCloudManager(string(ak[:]), string(pw[:]), *driverType)
+	cm, err := cloud.NewZecCloudManager(string(ak[:]), string(pw[:]), *driverType, *openAPIDomain)
 	if err != nil {
 		klog.Fatal(err.Error())
 		return

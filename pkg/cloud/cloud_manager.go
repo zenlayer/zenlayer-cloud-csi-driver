@@ -86,7 +86,8 @@ zenlayer sdk describe(v0.2.49):
 		context context.Context
 	}
 */
-func NewZecCloudManager(CLOUDAK string, CLOUDSK string, drivertype string) (*zecCloudManager, error) {
+// openAPIDomain overrides the SDK's default OpenAPI domain when it is not empty.
+func NewZecCloudManager(CLOUDAK string, CLOUDSK string, drivertype string, openAPIDomain string) (*zecCloudManager, error) {
 	cm := &zecCloudManager{
 		zecClient:    nil,
 		Iscontroller: true,
@@ -98,6 +99,9 @@ func NewZecCloudManager(CLOUDAK string, CLOUDSK string, drivertype string) (*zec
 	var err error
 
 	config := common.NewConfig().WithTimeout(300)
+	if openAPIDomain != "" {
+		config.Domain = openAPIDomain
+	}
 
 	cloud_secretKeyId := CLOUDAK
 	cloud_secretKeyPassword := CLOUDSK

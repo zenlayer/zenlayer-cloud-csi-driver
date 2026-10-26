@@ -1,3 +1,6 @@
+## Set to false when the controller runs outside this cluster (for example on a managed control plane):
+## only the node DaemonSet is installed, and the controller RBAC is kept for the external controller to use.
+controllerEnabled: true
 replicaCount: 3                 ## controller type csi Number of copies
 controllerSelectorkey: ""       ## controller type csi pod selector lable key. If you want to control the node where the pod is located 
 controllerSelectorval: ""       ## controller type csi pod selectot lable val. If you want to control the node where the pod is located
@@ -5,6 +8,7 @@ maxVolume: 9                    ## max attach volume num each node. By default, 
 defaultZone: ""                 ## if your k8s cluster is deployed in one zenlayer region and only have one ResourceGroup, do not need config zone in storage-class. You can set this val when deployed csi driver
 defaultResourceGroup: ""        ## if your k8s cluster is deployed in one zenlayer region and only have one ResourceGroup, do not need config group in storage-class. You can set this val when deployed csi driver 
 
+openAPIDomain: ""               ## Zenlayer OpenAPI domain for the controller; leave empty to use console.zenlayer.com
 featureGates: ""                ## support "enable_mount_opt", if open, csi will support config mount options in storage-class
   
 ## mixDriver is for testing only. When true, the controller pod also registers the node

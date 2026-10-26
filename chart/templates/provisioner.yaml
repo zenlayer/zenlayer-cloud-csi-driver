@@ -1,3 +1,4 @@
+{{- if .Values.controllerEnabled }}
 ---
 kind: Deployment
 apiVersion: apps/v1
@@ -60,6 +61,9 @@ spec:
             - "--mixDriver={{ .Values.mixDriver }}"
             - "--defaultZone={{ .Values.defaultZone }}"
             - "--defaultGroup={{ .Values.defaultResourceGroup }}"
+          {{- if .Values.openAPIDomain }}
+            - "--openAPIDomain={{ .Values.openAPIDomain }}"
+          {{- end }}
           env:
             - name: POD_IP
               valueFrom:
@@ -292,3 +296,4 @@ spec:
         - name: zec-secret
           secret:
             secretName: csi-access-key
+{{- end }}

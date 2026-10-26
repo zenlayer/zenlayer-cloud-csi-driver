@@ -27,8 +27,6 @@ spec:
           args:
             - "--nodename=$(NODE_ID)"
             - "--endpoint=unix://csi/csi.sock"
-            - "--secretpathAK=/etc/zec_secret/AccessKeyID"
-            - "--secretpathPW=/etc/zec_secret/AccessKeyPassword"
             - "--drivertype=node"
             - "--maxvolume={{ .Values.maxVolume }}"
           {{ if .Values.featureGates }}            

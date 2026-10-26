@@ -15,3 +15,22 @@ limitations under the License.
 */
 
 package cloud
+
+import (
+	"testing"
+
+	csicommon "github.com/zenlayer/zenlayer-cloud-csi-driver/pkg/common"
+)
+
+func TestNewZecCloudManagerOpenAPIDomain(t *testing.T) {
+	for _, domain := range []string{"", "portal-dev.example.com"} {
+		cm, err := NewZecCloudManager("ak", "sk", csicommon.ControllerDriverType, domain)
+		if err != nil || cm == nil || cm.zecClient == nil || !cm.Iscontroller {
+			t.Fatalf("domain %q: manager = %+v, err = %v; want a controller client", domain, cm, err)
+		}
+	}
+	cm, err := NewZecCloudManager("", "", csicommon.NodeDriverType, "portal-dev.example.com")
+	if err != nil || cm.zecClient != nil || cm.Iscontroller {
+		t.Fatalf("node manager = %+v, err = %v; want no client", cm, err)
+	}
+}
